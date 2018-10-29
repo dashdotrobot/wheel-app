@@ -2,10 +2,10 @@ import numpy as np
 from bikewheelcalc import BicycleWheel, Rim, Hub, calc_lat_stiff
 from helpers import *
 
-from bokeh.io import output_file, show
 from bokeh.layouts import column, row, widgetbox
 from bokeh.plotting import figure, curdoc
-from bokeh.models.widgets import Button, RadioButtonGroup, Select, Slider, Paragraph, Div, TextInput, Panel, Tabs
+from bokeh.models import CustomJS
+from bokeh.models.widgets import *
 
 
 RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
@@ -15,6 +15,26 @@ RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
 
 RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
              'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
+
+RIM_PRESETS = {
+    'Custom': {},
+    'Preset 1': {
+        'matl': 0,
+        'size': '700C/29er',
+        'mass': 500,
+        'EIrad': 100,
+        'EIlat': 150,
+        'GJ': 25
+    },
+    'Preset 2': {
+        'matl': 1,
+        'size': '26"',
+        'mass': 300,
+        'EIrad': 200,
+        'EIlat': 200,
+        'GJ': 10
+    },
+}
 
 SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
              'Alloy': {'young_mod': 69e9, 'density': 2700.}}
@@ -90,19 +110,55 @@ def build_wheel_from_UI():
 # TODO
 
 # Create rim controls
-rim_matl = RadioButtonGroup(labels=list(RIM_MATLS), active=0)
-rim_size = Select(title='Wheel size', value=list(RIM_SIZES)[0],
-                  options=list(RIM_SIZES))
-rim_mass = Slider(title='Mass [grams',
-                  start=5, end=2000, value=500, step=5)
-rim_EI1 = Slider(title='Radial stiffness [N m^2]',
-                 start=10, end=1000, value=100, step=10)
-rim_EI2 = Slider(title='Lateral stiffness [N m^2]',
-                 start=10, end=500, value=100, step=10)
-rim_GJ = Slider(title='Torsional stiffness [N m^2]',
-                start=10, end=500, value=100, step=10)
+rim_preset = Select(title='Preset', value='Custom',
+                    options=list(RIM_PRESETS))
 
-rim_pane = widgetbox(Div(text='<strong>Rim</strong>'),
+callback_reset_preset = CustomJS(args=dict(rim_preset=rim_preset), code="""
+    rim_preset.value = 'Custom'
+""")
+
+rim_matl = RadioButtonGroup(labels=list(RIM_MATLS), active=0,
+                            callback=callback_reset_preset)
+rim_size = Select(title='Wheel size', value=list(RIM_SIZES)[0],
+                  options=list(RIM_SIZES),
+                  callback=callback_reset_preset)
+rim_mass = Slider(title='Mass [grams',
+                  start=5, end=2000, value=500, step=5,
+                  callback=callback_reset_preset)
+rim_EI1 = Slider(title='Radial stiffness [N m^2]',
+                 start=10, end=1000, value=100, step=10,
+                 callback=callback_reset_preset)
+rim_EI2 = Slider(title='Lateral stiffness [N m^2]',
+                 start=10, end=500, value=100, step=10,
+                 callback=callback_reset_preset)
+rim_GJ = Slider(title='Torsional stiffness [N m^2]',
+                start=10, end=200, value=100, step=5,
+                callback=callback_reset_preset)
+
+callback_rim_preset = CustomJS(args=dict(rim_matl=rim_matl,
+                                         rim_mass=rim_mass,
+                                         rim_size=rim_size,
+                                         rim_EI1=rim_EI1,
+                                         rim_EI2=rim_EI2,
+                                         rim_GJ=rim_GJ,
+                                         RIM_PRESETS=RIM_PRESETS),
+                               code="""
+
+    rim_preset = cb_obj.value
+
+    if (rim_preset != 'Custom') {
+        rim_matl.active = RIM_PRESETS[rim_preset]['matl']
+        rim_size.value = RIM_PRESETS[rim_preset]['size']
+        rim_mass.value = RIM_PRESETS[rim_preset]['mass']
+        rim_GJ.value = RIM_PRESETS[rim_preset]['GJ']
+        rim_EI1.value = RIM_PRESETS[rim_preset]['EIrad']
+        rim_EI2.value = RIM_PRESETS[rim_preset]['EIlat']
+    }
+""")
+rim_preset.callback = callback_rim_preset
+
+
+rim_pane = widgetbox(Div(text='<strong>Rim</strong>'), rim_preset,
                      rim_matl, rim_size, rim_mass,
                      rim_EI1, rim_EI2, rim_GJ)
 
@@ -143,10 +199,12 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
 button_update = Button(label='Update Results', button_type='success')
 button_update.on_click(callback_Update_Results)
 
+
 # Text results
 output_div = Div(text='>>>')
 text_pane = column(Div(text='<strong>Console</strong>'),
                    output_div)
+
 
 # Plot results
 p1 = figure(plot_height=250)
@@ -161,3 +219,4 @@ result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
 layout = row(column(tool_panel,button_update), result_panel)
 
 curdoc().add_root(layout)
+curdoc().title = 'Wheel App'
