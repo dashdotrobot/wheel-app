@@ -2,6 +2,32 @@ from bokeh.io import output_file, show
 from bokeh.layouts import column, row, widgetbox
 from bokeh.plotting import figure
 from bokeh.models.widgets import Button, RadioButtonGroup, Select, Slider, Paragraph, Div, TextInput, Panel, Tabs
+from bikewheelcalc import BicycleWheel, Rim, Hub
+
+
+RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
+             '20"':       {'radius': 0.400/2},
+             '26"':       {'radius': 0.559/2},
+             '27"':       {'radius': 0.630/2}}
+
+def build_wheel_from_UI():
+    'Create a BicycleWheel object from UI inputs'
+
+    w = BicycleWheel()
+
+    # Hub
+    w.hub = Hub(diameter=hub_diam.value/1000.,
+                width=hub_width/1000.,
+                offset=hub_offset/1000.)
+
+    # Rim
+    w.rim = Rim(radius=RIM_SIZES[rim_size.value]['radius'],
+                area=100e-6,
+                I11=25./26e9, I22=200./69e9, I33=100./69e9, Iw=0.0,
+                young_mod=69e9, shear_mod=26e9)
+
+    w.lace_cross(n_spokes=36, n_cross=n_cross, diameter=1.8e-3, young_mod=210e9, offset=0.)
+
 
 # Define output file
 output_file('layout_test.html')
@@ -9,8 +35,8 @@ output_file('layout_test.html')
 
 # Create rim controls
 rim_matl = RadioButtonGroup(labels=['Alloy', 'Steel', 'Carbon'], active=0)
-rim_size = Select(title='Wheel size', value='700C/29er',
-                  options=['20"', '26"', '700C/29er', '27"'])
+rim_size = Select(title='Wheel size', value=list(RIM_SIZES)[0],
+                  options=list(RIM_SIZES))
 rim_mass = Slider(title='Mass [grams',
                   start=5, end=2000, value=500, step=5)
 rim_EI1 = Slider(title='Radial stiffness [N m^2]',
