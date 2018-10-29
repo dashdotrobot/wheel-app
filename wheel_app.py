@@ -10,6 +10,13 @@ RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
              '26"':       {'radius': 0.559/2},
              '27"':       {'radius': 0.630/2}}
 
+RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
+             'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
+
+SPK_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
+             'Steel': {'young_mod': 210e9, 'shear_mod': 79e9, 'density': 8000.}}
+
+
 def build_wheel_from_UI():
     'Create a BicycleWheel object from UI inputs'
 
@@ -87,7 +94,6 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
                         Panel(child=force_pane, title='Forces')])
 
 
-
 # Result plots
 p1 = figure(plot_height=250)
 p2 = figure(plot_height=250)
@@ -95,4 +101,4 @@ p2 = figure(plot_height=250)
 
 # Render the document
 show(row(tool_panel, column(Button(label='Update Results', button_type='success'),
-                             p1, p2)))
+                            p1, p2)))
