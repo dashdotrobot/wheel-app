@@ -12,21 +12,61 @@ RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
 
 RIM_PRESETS = {
     'Custom': {},
-    'Preset 1': {
+    'Alex ALX-295': {
         'matl': 0,
         'size': '700C/29er',
-        'mass': 500,
+        'mass': 480,
+        'EIrad': 310,
+        'EIlat': 210,
+        'GJ': 85
+    },
+    'DT Swiss R460': {
+        'matl': 0,
+        'size': '700C/29er',
+        'mass': 460,
+        'EIrad': 280,
+        'EIlat': 230,
+        'GJ': 100
+    },
+    'Sun-Ringle CR18 700C, 36h': {
+        'matl': 0,
+        'size': '700C/29er',
+        'mass': 540,
+        'EIrad': 110,
+        'EIlat': 220,
+        'GJ': 25
+    },
+    'Sun-Ringle CR18 20"': {
+        'matl': 0,
+        'size': '20"',
+        'mass': 380,
         'EIrad': 100,
         'EIlat': 150,
         'GJ': 25
     },
-    'Preset 2': {
-        'matl': 1,
+    'Alex X404 27"': {
+        'matl': 0,
+        'size': '27"',
+        'mass': 595,
+        'EIrad': 130,
+        'EIlat': 150,
+        'GJ': 15
+    },
+    'Alex Y2000 26"': {
+        'matl': 0,
         'size': '26"',
-        'mass': 300,
-        'EIrad': 200,
-        'EIlat': 200,
-        'GJ': 10
+        'mass': 460,
+        'EIrad': 110,
+        'EIlat': 130,
+        'GJ': 15
+    },
+    'Alex Y2000 700C': {
+        'matl': 0,
+        'size': '700C/29er',
+        'mass': 550,
+        'EIrad': 125,
+        'EIlat': 160,
+        'GJ': 20
     },
 }
 
