@@ -1,8 +1,9 @@
+import numpy as np
 from bokeh.io import output_file, show
 from bokeh.layouts import column, row, widgetbox
-from bokeh.plotting import figure
+from bokeh.plotting import figure, curdoc
 from bokeh.models.widgets import Button, RadioButtonGroup, Select, Slider, Paragraph, Div, TextInput, Panel, Tabs
-from bikewheelcalc import BicycleWheel, Rim, Hub
+from bikewheelcalc import BicycleWheel, Rim, Hub, calc_lat_stiff
 
 
 RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
@@ -13,8 +14,24 @@ RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
 RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
              'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
 
-SPK_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
-             'Steel': {'young_mod': 210e9, 'shear_mod': 79e9, 'density': 8000.}}
+SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
+             'Alloy': {'young_mod': 69e9, 'density': 2700.}}
+
+
+# Callbacks
+def callback_Update_Results():
+    'Build BicycleWheel object and calculate results'
+
+    try:
+        w = build_wheel_from_UI()
+    except Exception as e:
+        output_div.text = 'Error building wheel: {:s}'.format(repr(e))
+        return False
+
+    # Lateral stiffness
+    K_lat = calc_lat_stiff(w)
+
+    output_div.text = str(K_lat)
 
 
 def build_wheel_from_UI():
@@ -23,29 +40,53 @@ def build_wheel_from_UI():
     w = BicycleWheel()
 
     # Hub
-    w.hub = Hub(diameter=hub_diam.value/1000.,
-                width=hub_width/1000.,
-                offset=hub_offset/1000.)
+    w.hub = Hub(diameter=float(hub_diam.value)/1000.,
+                width=float(hub_width.value)/1000.,
+                offset=float(hub_offset.value)/1000.)
 
     # Rim
-    w.rim = Rim(radius=RIM_SIZES[rim_size.value]['radius'],
-                area=100e-6,
-                I11=25./26e9, I22=200./69e9, I33=100./69e9, Iw=0.0,
-                young_mod=69e9, shear_mod=26e9)
+    r_matl = list(RIM_MATLS)[rim_matl.active]
+    radius = RIM_SIZES[rim_size.value]['radius']
+    density = RIM_MATLS[r_matl]['density']
+    mass = float(rim_mass.value) / 1000.
+    area = mass / (2*np.pi*radius*density)
+    rim_young_mod = RIM_MATLS[r_matl]['young_mod']
+    rim_shear_mod = RIM_MATLS[r_matl]['shear_mod']
 
+    w.rim = Rim(radius=radius,
+                area=area,
+                I11=float(rim_GJ.value) / rim_shear_mod,
+                I22=float(rim_EI2.value) / rim_young_mod,
+                I33=float(rim_EI1.value) / rim_young_mod, Iw=0.0,
+                young_mod=rim_young_mod, shear_mod=rim_shear_mod)
 
+    # Spokes
+    if spk_pattern.value == 'Radial':
+        n_cross = 0
+    elif spk_pattern.value.endswith('-cross'):
+        n_cross = int(spk_pattern.value[0])
+    else:
+        raise ValueError('Undefined spoke pattern: {:s}'.format(spk_pattern.value))
 
-    w.lace_cross(n_spokes=36, n_cross=n_cross, diameter=1.8e-3, young_mod=210e9, offset=0.)
+    s_matl = list(SPK_MATLS)[spk_matl.active]
+    w.lace_cross(n_spokes=int(spk_num.value),
+                 n_cross=n_cross,
+                 diameter=float(spk_diam.value)/1000.,
+                 young_mod=SPK_MATLS[s_matl]['young_mod'],
+                 offset=0.)  # Implement this later
+
+    w.apply_tension(float(spk_tension.value))
+
+    return w
 
 
 # Define output file
-output_file('layout_test.html')
 
 # Create presets controls
-
+# TODO
 
 # Create rim controls
-rim_matl = RadioButtonGroup(labels=['Alloy', 'Steel', 'Carbon'], active=0)
+rim_matl = RadioButtonGroup(labels=list(RIM_MATLS), active=0)
 rim_size = Select(title='Wheel size', value=list(RIM_SIZES)[0],
                   options=list(RIM_SIZES))
 rim_mass = Slider(title='Mass [grams',
@@ -70,7 +111,7 @@ hub_pane = widgetbox(Div(text='<hr/><strong>Hub</strong>'),
                      hub_width, hub_diam, hub_offset)
 
 # Create spoke controls
-spk_matl = RadioButtonGroup(labels=['Steel', 'Alloy', 'Carbon'], active=0)
+spk_matl = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
 spk_num = Slider(title='Number of spokes', start=8, end=64, step=4, value=36)
 spk_diam = Slider(title='Diameter [mm]', start=1., end=3., step=0.1, value=2.)
 spk_tension = Slider(title='Average spoke tension [kgf]', start=0., end=200, step=2, value=100)
@@ -94,11 +135,25 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
                         Panel(child=force_pane, title='Forces')])
 
 
-# Result plots
+# Update Results control
+button_update = Button(label='Update Results', button_type='success')
+button_update.on_click(callback_Update_Results)
+
+# Text results
+output_div = Div(text='>>>')
+text_pane = column(Div(text='<strong>Console</strong>'),
+                   output_div)
+
+# Plot results
 p1 = figure(plot_height=250)
 p2 = figure(plot_height=250)
+plot_pane = column(p1, p2)
+
+result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
+                    Panel(child=plot_pane, title='Plots')])
 
 
 # Render the document
-show(row(tool_panel, column(Button(label='Update Results', button_type='success'),
-                            p1, p2)))
+layout = row(column(tool_panel,button_update), result_panel)
+
+curdoc().add_root(layout)
