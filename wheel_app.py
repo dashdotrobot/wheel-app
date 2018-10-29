@@ -232,13 +232,16 @@ disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
                                    'disp_w': np.zeros(501),
                                    'disp_Rphi': np.zeros(501)})
 
-plot_disp = figure(plot_height=250)
+plot_disp = figure(plot_height=270)
 plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
 plot_disp.yaxis.axis_label = 'Displacement [mm]'
 
-plot_disp.line('theta', 'disp_u', legend='lateral', color='blue', source=disp_data)
-plot_disp.line('theta', 'disp_v', legend='radial', color='red', source=disp_data)
-plot_disp.line('theta', 'disp_w', legend='tangential', color='green', source=disp_data)
+plot_disp.line('theta', 'disp_u', legend='lateral',
+               line_width=2, color='#1f77b4', source=disp_data)
+plot_disp.line('theta', 'disp_v', legend='radial',
+               line_width=2, color='#ff7f0e', source=disp_data)
+plot_disp.line('theta', 'disp_w', legend='tangential',
+               line_width=2, color='#2ca02c', source=disp_data)
 
 plot_disp.legend.location = 'top_left'
 plot_disp.legend.click_policy = 'hide'
@@ -247,7 +250,7 @@ plot_disp.legend.click_policy = 'hide'
 T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
                                 'width': [], 'side': [], 'color': []})
 
-plot_tension = figure(plot_height=250, x_range=plot_disp.x_range,
+plot_tension = figure(plot_height=270, x_range=plot_disp.x_range,
                       tooltips=[('T', '@T{0.0} [kgf]'), ('deltaT', '@dT{+0.0} [kgf]')])
 plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
 
