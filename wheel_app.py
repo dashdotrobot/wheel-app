@@ -1,9 +1,11 @@
 import numpy as np
+from bikewheelcalc import BicycleWheel, Rim, Hub, calc_lat_stiff
+from helpers import *
+
 from bokeh.io import output_file, show
 from bokeh.layouts import column, row, widgetbox
 from bokeh.plotting import figure, curdoc
 from bokeh.models.widgets import Button, RadioButtonGroup, Select, Slider, Paragraph, Div, TextInput, Panel, Tabs
-from bikewheelcalc import BicycleWheel, Rim, Hub, calc_lat_stiff
 
 
 RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
@@ -28,10 +30,8 @@ def callback_Update_Results():
         output_div.text = 'Error building wheel: {:s}'.format(repr(e))
         return False
 
-    # Lateral stiffness
-    K_lat = calc_lat_stiff(w)
-
-    output_div.text = str(K_lat)
+    # Print basic wheel information
+    output_div.text = print_wheel_info(w)
 
 
 def build_wheel_from_UI():
@@ -75,7 +75,11 @@ def build_wheel_from_UI():
                  young_mod=SPK_MATLS[s_matl]['young_mod'],
                  offset=0.)  # Implement this later
 
-    w.apply_tension(float(spk_tension.value))
+    if spk_pattern.value == 'Radial' and float(spk_tension.value) == 0.:
+        # Apply a vanishingly small tension to make stiffness matrix invertable
+        w.apply_tension(w.spokes[0].EA*1e-6)
+    else:
+        w.apply_tension(9.81*float(spk_tension.value))
 
     return w
 
