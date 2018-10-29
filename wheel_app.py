@@ -4,11 +4,12 @@ from helpers import *
 
 from bokeh.layouts import column, row, widgetbox
 from bokeh.plotting import figure, curdoc
-from bokeh.models import CustomJS
+from bokeh.models import CustomJS, Range1d, ColumnDataSource
 from bokeh.models.widgets import *
 
-
+# -----------------------------------------------------------------------------
 # Callbacks
+# -----------------------------------------------------------------------------
 def callback_Update_Results():
     'Build BicycleWheel object and calculate results'
 
@@ -20,6 +21,32 @@ def callback_Update_Results():
 
     # Print basic wheel information
     output_div.text = print_wheel_info(w)
+
+    plot_displacements(wheel=w)
+
+def plot_displacements(wheel):
+    'Plot displacements'
+
+    # Calculate displacements
+    mm = ModeMatrix(wheel, N=36)
+
+    K = (mm.K_rim(tension=True, r0=True) +
+         mm.K_spk(tension=True, smeared_spokes=False))
+
+    f = [0., 0., 0., 0.]
+    f[int(f1_dof.active)] = float(f1_mag.value)
+    F_ext = mm.F_ext(f_theta=float(f1_loc.value) * np.pi/180., f=f)
+
+    dm = np.linalg.solve(K, F_ext)
+
+    Bu = mm.B_theta(theta=disp_data.data['theta'], comps=[0])
+    Bv = mm.B_theta(theta=disp_data.data['theta'], comps=[1])
+    Bw = mm.B_theta(theta=disp_data.data['theta'], comps=[2])
+
+    # Update ColumnDataSource
+    disp_data.data.update({'disp_u': Bu.dot(dm)*1e3,
+                           'disp_v': Bv.dot(dm)*1e3,
+                           'disp_w': Bw.dot(dm)*1e3})
 
 
 def build_wheel_from_UI():
@@ -72,10 +99,9 @@ def build_wheel_from_UI():
     return w
 
 
-# Define output file
-
-# Create presets controls
-# TODO
+# -----------------------------------------------------------------------------
+# Wheel builder panel
+# -----------------------------------------------------------------------------
 
 # Create rim controls
 rim_preset = Select(title='Preset', value='Custom',
@@ -149,9 +175,9 @@ spk_pattern = Select(title='Spoke pattern', value='3-cross',
 spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 # Forces pane
-f1_dof = RadioButtonGroup(labels=['Radial', 'Lateral', 'Tangential'], active=0)
+f1_dof = RadioButtonGroup(labels=['Lateral', 'Radial', 'Tangential'], active=1)
 f1_loc = TextInput(title='Location [degrees]:', value='0')
-f1_mag = TextInput(title='Magnitude [N]:', value='0')
+f1_mag = TextInput(title='Magnitude [N]:', value='1000')
 force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
 # Combine Wheelbuilding and Forces pane
@@ -166,6 +192,10 @@ button_update = Button(label='Update Results', button_type='success')
 button_update.on_click(callback_Update_Results)
 
 
+# -----------------------------------------------------------------------------
+# Results panel
+# -----------------------------------------------------------------------------
+
 # Text results
 output_div = Div(text='>>>')
 text_pane = column(Div(text='<strong>Console</strong>'),
@@ -173,9 +203,31 @@ text_pane = column(Div(text='<strong>Console</strong>'),
 
 
 # Plot results
-p1 = figure(plot_height=250)
-p2 = figure(plot_height=250)
-plot_pane = column(p1, p2)
+
+# Displacement plot
+disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
+                                   'disp_u': np.zeros(501),
+                                   'disp_v': np.zeros(501),
+                                   'disp_w': np.zeros(501),
+                                   'disp_Rphi': np.zeros(501)})
+plot_disp = figure(plot_height=250)
+plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
+plot_disp.yaxis.axis_label = 'Displacement [mm]'
+
+plot_disp.line('theta', 'disp_u', color='blue', source=disp_data)
+plot_disp.line('theta', 'disp_v', color='red', source=disp_data)
+plot_disp.line('theta', 'disp_w', color='green', source=disp_data)
+
+
+# Spoke tension plot
+# T_data = ColumnDataSource(data={'T0': np.zeros(int(spk_num.value)),
+                                # 'dT': np.zeros(int(spk_num.value))})
+
+
+plot_tension = figure(plot_height=250)
+
+
+plot_pane = column(plot_disp, plot_tension)
 
 result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
                     Panel(child=plot_pane, title='Plots')])
