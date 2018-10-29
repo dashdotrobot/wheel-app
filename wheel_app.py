@@ -126,7 +126,7 @@ callback_rim_preset = CustomJS(args=dict(rim_matl=rim_matl,
 rim_preset.callback = callback_rim_preset
 
 
-rim_pane = widgetbox(Div(text='<strong>Rim</strong>'), rim_preset,
+rim_pane = widgetbox(rim_preset,
                      Div(text='<hr/>'),
                      rim_matl, rim_size, rim_mass,
                      rim_EI1, rim_EI2, rim_GJ)
@@ -136,8 +136,7 @@ hub_width = Slider(title='Flange separation [mm]', start=10, end=80, step=1, val
 hub_diam = Slider(title='Flange diameter [mm]', start=10, end=80, step=1, value=50)
 hub_offset = Slider(title='Dish offset [mm]', start=-30, end=30, step=1, value=0)
 
-hub_pane = widgetbox(Div(text='<strong>Hub</strong>'),
-                     hub_width, hub_diam, hub_offset)
+hub_pane = widgetbox(hub_width, hub_diam, hub_offset)
 
 # Create spoke controls
 spk_matl = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
@@ -147,15 +146,13 @@ spk_tension = Slider(title='Average spoke tension [kgf]', start=0., end=200, ste
 spk_pattern = Select(title='Spoke pattern', value='3-cross',
                      options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
 
-spk_pane = widgetbox(Div(text='<strong>Spokes</strong>'),
-                     spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
+spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 # Forces pane
 f1_dof = RadioButtonGroup(labels=['Radial', 'Lateral', 'Tangential'], active=0)
 f1_loc = TextInput(title='Location [degrees]:', value='0')
 f1_mag = TextInput(title='Magnitude [N]:', value='0')
-force_pane = widgetbox(Div(text='<strong>Forces</strong>'),
-                       f1_dof, f1_loc, f1_mag)
+force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
 # Combine Wheelbuilding and Forces pane
 tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
