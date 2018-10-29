@@ -29,10 +29,10 @@ def plot_displacements(wheel):
     'Plot displacements'
 
     # Calculate displacements
-    mm = ModeMatrix(wheel, N=36)
+    mm = ModeMatrix(wheel, N=int(sim_opt_nmodes.value))
 
-    K = (mm.K_rim(tension=True, r0=True) +
-         mm.K_spk(tension=True, smeared_spokes=False))
+    K = (mm.K_rim(tension=(0 in sim_opts.active), r0=True) +
+         mm.K_spk(tension=(0 in sim_opts.active), smeared_spokes=(1 in sim_opts.active)))
 
     f = [0., 0., 0., 0.]
     f[int(f1_dof.active)] = float(f1_mag.value)
@@ -218,7 +218,12 @@ text_pane = column(Div(text='<strong>Console</strong>'),
                    output_div)
 
 
-# Plot results
+### Plot results ###
+
+# Computation option controls
+sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes'],
+                               active=[0])
+sim_opt_nmodes = Slider(title='Accuracy', start=2, end=40, step=1, value=20)
 
 # Displacement plot
 disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
@@ -250,7 +255,8 @@ plot_tension.vbar(x='theta', top='dT', color='color',
 
 plot_tension.legend.location = 'bottom_left'
 
-plot_pane = column(plot_disp, plot_tension)
+plot_pane = column(row(sim_opts, sim_opt_nmodes),
+                   plot_disp, plot_tension)
 
 result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
