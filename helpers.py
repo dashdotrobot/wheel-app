@@ -1,6 +1,39 @@
 import numpy as np
 from bikewheelcalc import *
 
+
+RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
+             '20"':       {'radius': 0.400/2},
+             '26"':       {'radius': 0.559/2},
+             '27"':       {'radius': 0.630/2}}
+
+RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
+             'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
+
+RIM_PRESETS = {
+    'Custom': {},
+    'Preset 1': {
+        'matl': 0,
+        'size': '700C/29er',
+        'mass': 500,
+        'EIrad': 100,
+        'EIlat': 150,
+        'GJ': 25
+    },
+    'Preset 2': {
+        'matl': 1,
+        'size': '26"',
+        'mass': 300,
+        'EIrad': 200,
+        'EIlat': 200,
+        'GJ': 10
+    },
+}
+
+SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
+             'Alloy': {'young_mod': 69e9, 'density': 2700.}}
+
+
 def avg_tension_side(w, side=1):
 	'Calculate average tension for spokes on one side'
 

@@ -8,38 +8,6 @@ from bokeh.models import CustomJS
 from bokeh.models.widgets import *
 
 
-RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
-             '20"':       {'radius': 0.400/2},
-             '26"':       {'radius': 0.559/2},
-             '27"':       {'radius': 0.630/2}}
-
-RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
-             'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
-
-RIM_PRESETS = {
-    'Custom': {},
-    'Preset 1': {
-        'matl': 0,
-        'size': '700C/29er',
-        'mass': 500,
-        'EIrad': 100,
-        'EIlat': 150,
-        'GJ': 25
-    },
-    'Preset 2': {
-        'matl': 1,
-        'size': '26"',
-        'mass': 300,
-        'EIrad': 200,
-        'EIlat': 200,
-        'GJ': 10
-    },
-}
-
-SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
-             'Alloy': {'young_mod': 69e9, 'density': 2700.}}
-
-
 # Callbacks
 def callback_Update_Results():
     'Build BicycleWheel object and calculate results'
@@ -159,6 +127,7 @@ rim_preset.callback = callback_rim_preset
 
 
 rim_pane = widgetbox(Div(text='<strong>Rim</strong>'), rim_preset,
+                     Div(text='<hr/>'),
                      rim_matl, rim_size, rim_mass,
                      rim_EI1, rim_EI2, rim_GJ)
 
@@ -167,7 +136,7 @@ hub_width = Slider(title='Flange separation [mm]', start=10, end=80, step=1, val
 hub_diam = Slider(title='Flange diameter [mm]', start=10, end=80, step=1, value=50)
 hub_offset = Slider(title='Dish offset [mm]', start=-30, end=30, step=1, value=0)
 
-hub_pane = widgetbox(Div(text='<hr/><strong>Hub</strong>'),
+hub_pane = widgetbox(Div(text='<strong>Hub</strong>'),
                      hub_width, hub_diam, hub_offset)
 
 # Create spoke controls
@@ -178,7 +147,7 @@ spk_tension = Slider(title='Average spoke tension [kgf]', start=0., end=200, ste
 spk_pattern = Select(title='Spoke pattern', value='3-cross',
                      options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
 
-spk_pane = widgetbox(Div(text='<hr/><strong>Spokes</strong>'),
+spk_pane = widgetbox(Div(text='<strong>Spokes</strong>'),
                      spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 # Forces pane
