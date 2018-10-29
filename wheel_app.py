@@ -214,9 +214,12 @@ plot_disp = figure(plot_height=250)
 plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
 plot_disp.yaxis.axis_label = 'Displacement [mm]'
 
-plot_disp.line('theta', 'disp_u', color='blue', source=disp_data)
-plot_disp.line('theta', 'disp_v', color='red', source=disp_data)
-plot_disp.line('theta', 'disp_w', color='green', source=disp_data)
+plot_disp.line('theta', 'disp_u', legend='lateral', color='blue', source=disp_data)
+plot_disp.line('theta', 'disp_v', legend='radial', color='red', source=disp_data)
+plot_disp.line('theta', 'disp_w', legend='tangential', color='green', source=disp_data)
+
+plot_disp.legend.location = 'top_left'
+plot_disp.legend.click_policy = 'hide'
 
 
 # Spoke tension plot
