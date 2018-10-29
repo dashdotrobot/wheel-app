@@ -249,7 +249,6 @@ plot_tension.vbar(x='theta', top='dT', color='color',
                   width='width', legend='side', source=T_data)
 
 plot_tension.legend.location = 'bottom_left'
-plot_tension.legend.click_policy = 'hide'
 
 plot_pane = column(plot_disp, plot_tension)
 
