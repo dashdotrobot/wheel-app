@@ -247,7 +247,8 @@ plot_disp.legend.click_policy = 'hide'
 T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
                                 'width': [], 'side': [], 'color': []})
 
-plot_tension = figure(plot_height=250, x_range=plot_disp.x_range)
+plot_tension = figure(plot_height=250, x_range=plot_disp.x_range,
+                      tooltips=[('T', '@T'), ('deltaT', '@dT')])
 plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
 
 plot_tension.vbar(x='theta', top='dT', color='color',
@@ -263,7 +264,7 @@ result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
 
 
 # Render the document
-layout = row(column(tool_panel,button_update), result_panel)
+layout = row(column(tool_panel, button_update), result_panel)
 
 curdoc().add_root(layout)
 curdoc().title = 'Wheel App'
