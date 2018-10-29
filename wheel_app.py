@@ -22,6 +22,7 @@ def callback_Update_Results():
     # Print basic wheel information
     output_div.text = print_wheel_info(w)
 
+    # Plot results
     plot_displacements(wheel=w)
 
 def plot_displacements(wheel):
@@ -47,6 +48,21 @@ def plot_displacements(wheel):
     disp_data.data.update({'disp_u': Bu.dot(dm)*1e3,
                            'disp_v': Bv.dot(dm)*1e3,
                            'disp_w': Bw.dot(dm)*1e3})
+
+    # Update spoke tensions
+    theta_spk = np.array([s.rim_pt[1] for s in wheel.spokes])
+    theta_spk = np.where(theta_spk <= np.pi, theta_spk, theta_spk - 2*np.pi)
+    dT = [-s.EA/s.length/9.81 *
+          np.dot(s.n, mm.B_theta(s.rim_pt[1], comps=[0, 1, 2]).dot(dm))
+          for s in wheel.spokes]
+    T = [s.tension/9.81 + delT for s, delT in zip(wheel.spokes, dT)]
+    width = 0.5 * 2*np.pi/len(wheel.spokes) * np.ones(len(wheel.spokes))
+    side = ['right' if s.hub_pt[2] > 0 else 'left' for s in wheel.spokes]
+    color = ['#ff7f0e' if s == 'right' else '#1f77b4' for s in side]
+
+    T_data.data.update({'theta': theta_spk,
+                        'dT': dT, 'T': T,
+                        'width': width, 'side': side, 'color': color})
 
 
 def build_wheel_from_UI():
@@ -223,17 +239,19 @@ plot_disp.legend.click_policy = 'hide'
 
 
 # Spoke tension plot
-# T_data = ColumnDataSource(data={'T0': np.zeros(int(spk_num.value)),
-                                # 'dT': np.zeros(int(spk_num.value))})
+T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
+                                'width': [], 'side': [], 'color': []})
 
 
-plot_tension = figure(plot_height=250)
+plot_tension = figure(plot_height=250, x_range=plot_disp.x_range)
+plot_tension.vbar(x='theta', top='dT', color='color',
+                  width='width', legend='side', source=T_data)
 
 
 plot_pane = column(plot_disp, plot_tension)
 
 result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
-                    Panel(child=plot_pane, title='Plots')])
+                          Panel(child=plot_pane, title='Plots')])
 
 
 # Render the document
