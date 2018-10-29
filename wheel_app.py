@@ -232,15 +232,17 @@ disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
                                    'disp_w': np.zeros(501),
                                    'disp_Rphi': np.zeros(501)})
 
-plot_disp = figure(plot_height=270, tools='ypan,box_zoom,reset,save')
+plot_disp = figure(plot_height=270,
+                   tools='ypan,box_zoom,reset,save',
+                   tooltips=[('value', '@$name')])
 plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
 plot_disp.yaxis.axis_label = 'Displacement [mm]'
 
-plot_disp.line('theta', 'disp_u', legend='lateral',
+plot_disp.line('theta', 'disp_u', legend='lateral', name='disp_u',
                line_width=2, color='#1f77b4', source=disp_data)
-plot_disp.line('theta', 'disp_v', legend='radial',
+plot_disp.line('theta', 'disp_v', legend='radial', name='disp_v',
                line_width=2, color='#ff7f0e', source=disp_data)
-plot_disp.line('theta', 'disp_w', legend='tangential',
+plot_disp.line('theta', 'disp_w', legend='tangential', name='disp_w',
                line_width=2, color='#2ca02c', source=disp_data)
 
 plot_disp.legend.location = 'top_left'
