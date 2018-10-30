@@ -1,3 +1,26 @@
+### ---------------------------------------------------------------------- ###
+# Bicycle Wheel App
+# Web-based tool for calculating mechanical properties of bicycle wheels
+#
+# wheel_app.py : Main routine (run by Bokeh Server)
+#
+# Author    : Matthew Ford, Ph.D <www.dashdotrobot.com>
+# Copyright : Matthew Ford (2018)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# See LICENSE for a copy of the full license.
+### ---------------------------------------------------------------------- ###
+
+
 import numpy as np
 from bikewheelcalc import BicycleWheel, Rim, Hub, calc_lat_stiff
 from helpers import *
@@ -8,9 +31,9 @@ from bokeh.models import CustomJS, Range1d, ColumnDataSource
 from bokeh.models.widgets import *
 
 
-# -------------------------------- CALLBACKS -------------------------------- #
-# Define functions to update the results based on user input.                 #
-# --------------------------------------------------------------------------- #
+# -------------------------------- CALLBACKS ------------------------------- #
+# Define functions to update the results based on user input.                #
+# -------------------------------------------------------------------------- #
 def callback_update_results():
     'Build BicycleWheel object and calculate results'
 
@@ -115,9 +138,9 @@ def build_wheel_from_UI():
     return w
 
 
-# -------------------------------- CONTROLLER ------------------------------- #
-# Define widgets, output canvases, and some native JS callbacks.              #
-# --------------------------------------------------------------------------- #
+# -------------------------------- CONTROLLER ------------------------------ #
+# Define widgets, output canvases, and some native JS callbacks.             #
+# -------------------------------------------------------------------------- #
 
 # Create rim controls
 rim_preset = Select(title='Preset', options=list(RIM_PRESETS),
@@ -212,9 +235,9 @@ button_update = Button(label='Update Results', button_type='success')
 button_update.on_click(callback_update_results)
 
 
-# ---------------------------- PLOTS AND RESULTS ---------------------------- #
-# Define data sources and result canvases.                                    #
-# --------------------------------------------------------------------------- #
+# ---------------------------- PLOTS AND RESULTS --------------------------- #
+# Define data sources and result canvases.                                   #
+# -------------------------------------------------------------------------- #
 
 # Panel to display text results
 output_div = Div(text='')
@@ -248,7 +271,8 @@ T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
 
 plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
                       tools='ypan,box_zoom,reset,save',
-                      tooltips=[('T', '@T{0.0} [kgf]'), ('deltaT', '@dT{+0.0} [kgf]')])
+                      tooltips=[('T', '@T{0.0} [kgf]'),
+                                ('deltaT', '@dT{+0.0} [kgf]')])
 plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
 plot_tension.vbar(x='theta', top='dT', color='color',
                   width='width', legend='side', source=T_data)
@@ -256,10 +280,9 @@ plot_tension.vbar(x='theta', top='dT', color='color',
 plot_tension.legend.location = 'bottom_left'
 
 
-# ------------------------------ USER INTERFACE ----------------------------- #
-# ------------------------------ USER INTERFACE ----------------------------- #
-# Define widgets, output canvases, and some native JS callbacks.              #
-# --------------------------------------------------------------------------- #
+# ----------------------------- USER INTERFACE ----------------------------- #
+# Define widgets, output canvases, and some native JS callbacks.             #
+# -------------------------------------------------------------------------- #
 
 rim_pane = widgetbox(rim_preset,
                      Div(text='<hr/>'),
