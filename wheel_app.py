@@ -145,7 +145,7 @@ rim_GJ = Slider(title='Torsional stiffness [N m^2]',
                 start=10, end=200, value=100, step=5,
                 callback=callback_reset_preset)
 
-callback_rim_preset = CustomJS(args=dict(rim_matl=rim_matl,
+rim_preset.callback = CustomJS(args=dict(rim_matl=rim_matl,
                                          rim_mass=rim_mass,
                                          rim_size=rim_size,
                                          rim_EI1=rim_EI1,
@@ -165,8 +165,6 @@ callback_rim_preset = CustomJS(args=dict(rim_matl=rim_matl,
         rim_EI2.value = RIM_PRESETS[rim_preset]['EIlat']
     }
 """)
-rim_preset.callback = callback_rim_preset
-
 
 rim_pane = widgetbox(rim_preset,
                      Div(text='<hr/>'),
@@ -176,7 +174,13 @@ rim_pane = widgetbox(rim_preset,
 # Create hub controls
 hub_width = Slider(title='Flange separation [mm]', start=10, end=80, step=1, value=50)
 hub_diam = Slider(title='Flange diameter [mm]', start=10, end=80, step=1, value=50)
-hub_offset = Slider(title='Dish offset [mm]', start=-30, end=30, step=1, value=0)
+hub_offset = Slider(title='Dish offset [mm]', start=-25, end=25, step=1, value=0)
+
+hub_width.callback = CustomJS(args=dict(hub_offset=hub_offset), code="""
+    hub_offset.value = 0
+    hub_offset.start = -Math.floor(cb_obj.value/2)
+    hub_offset.end = Math.floor(cb_obj.value/2)
+""")
 
 hub_pane = widgetbox(hub_width, hub_diam, hub_offset)
 
