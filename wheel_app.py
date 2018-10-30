@@ -10,7 +10,7 @@ from bokeh.models.widgets import *
 # -----------------------------------------------------------------------------
 # Callbacks
 # -----------------------------------------------------------------------------
-def callback_Update_Results():
+def callback_update_results():
     'Build BicycleWheel object and calculate results'
 
     try:
@@ -205,7 +205,7 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
 
 # Update Results control
 button_update = Button(label='Update Results', button_type='success')
-button_update.on_click(callback_Update_Results)
+button_update.on_click(callback_update_results)
 
 
 # -----------------------------------------------------------------------------
@@ -213,9 +213,7 @@ button_update.on_click(callback_Update_Results)
 # -----------------------------------------------------------------------------
 
 # Text results
-output_div = Div(text='>>>')
-text_pane = column(Div(text='<strong>Console</strong>'),
-                   output_div)
+output_div = Div(text='')
 
 
 ### Plot results ###
@@ -232,7 +230,7 @@ disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
                                    'disp_w': np.zeros(501),
                                    'disp_Rphi': np.zeros(501)})
 
-plot_disp = figure(plot_height=250,
+plot_disp = figure(plot_height=240,
                    tools='ypan,box_zoom,reset,save',
                    tooltips=[('value', '@$name')])
 plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
@@ -252,7 +250,7 @@ plot_disp.legend.click_policy = 'hide'
 T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
                                 'width': [], 'side': [], 'color': []})
 
-plot_tension = figure(plot_height=250, x_range=plot_disp.x_range,
+plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
                       tools='ypan,box_zoom,reset,save',
                       tooltips=[('T', '@T{0.0} [kgf]'), ('deltaT', '@dT{+0.0} [kgf]')])
 plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
@@ -265,7 +263,7 @@ plot_tension.legend.location = 'bottom_left'
 plot_pane = column(row(sim_opts, sim_opt_nmodes),
                    plot_disp, plot_tension)
 
-result_panel = Tabs(tabs=[Panel(child=text_pane, title='Results'),
+result_panel = Tabs(tabs=[Panel(child=output_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
 
 footer = Div(text="""
@@ -275,6 +273,9 @@ Copyright Matthew Ford 2018</small>""")
 # Render the document
 layout = row(column(tool_panel, button_update, footer), result_panel)
 
+# Initialize the plots with results
+callback_update_results()
 
+# Render the document
 curdoc().add_root(layout)
 curdoc().title = 'Wheel App'
