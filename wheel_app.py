@@ -240,7 +240,7 @@ button_update.on_click(callback_update_results)
 # -------------------------------------------------------------------------- #
 
 # Panel to display text results
-output_div = Div(text='')
+output_div = Div(text='', width=500)
 
 # Displacement plot
 disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),

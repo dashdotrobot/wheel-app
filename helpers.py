@@ -98,9 +98,9 @@ SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
 
 
 def avg_tension_side(w, side=1):
-    'Calculate average tension for spokes on one side'
+    'Calculate average tension for spokes on one side [N]'
 
-    return np.mean([s.tension/9.81 for s in w.spokes if side*s.hub_pt[2] > 0])
+    return np.mean([s.tension for s in w.spokes if side*s.hub_pt[2] > 0])
 
 def print_wheel_info(w):
     'Return a formatted string of basic wheel properties'
@@ -108,36 +108,51 @@ def print_wheel_info(w):
     out = ''
 
     # Mass and inertia properties
+    # TODO
 
     # Stiffness properties
-    out += '<h3>Stiffness</h3>\n'
-    out += '<p>Radial stiffness: {:.1f} [N/mm]</p>\n'\
-        .format(calc_rad_stiff(w)/1000.)
-    out += '<p>Lateral stiffness: {:.1f} [N/mm]</p>\n'\
-        .format(calc_lat_stiff(w)/1000.)
-    out += '<p>Torsional stiffness: {:.2f} [kN/deg]</p>\n'\
-        .format(np.pi/180. * calc_tor_stiff(w)/1000.)
+    K_lat = calc_lat_stiff(w)
+    K_lat_0 = calc_lat_stiff(w, tension=False, buckling=False)
+    K_rad = calc_rad_stiff(w)
+    K_tor = calc_tor_stiff(w)
+
+    out += '<h3>Stiffness</h3>\n<table class="table">\n'
+    out += '    <tr><td>Radial stiffness</td><td>{0:.1f} N/mm</td><td>({1:.1f} lbs/in)</td></tr>\n'\
+        .format(K_rad/1000., K_rad * 0.0254/4.448)
+    out += '    <tr><td>Lateral stiffness</td><td>{0:.1f} N/mm</td><td>({1:.1f} lbs/in)</td></tr>\n'\
+        .format(K_lat/1000., K_lat * 0.0254/4.448)
+    out += '    <tr><td>Torsional stiffness</td><td>{0:.2f} kN/deg</td><td>({1:.1f} lbs/deg)</td></tr>\n'\
+        .format(K_tor*np.pi/180/1000., K_tor*np.pi/180/4.448)
+    out += '</table>\n'
 
     # Tension properties
-    out += '<h3>Spoke Tension</h3>\n'
-    out += '<p>Average drive-side tension: {:.1f} [kgf]</p>\n'\
-        .format(avg_tension_side(w, side=1))
-    out += '<p>Average non-drive-side tension: {:.1f} [kgf]</p>\n'\
-        .format(avg_tension_side(w, side=-1))
-
     Tc, nc = calc_buckling_tension(w, approx='linear')
-    out += '<p>Maximum average tension: {:.1f} [kgf]</p>\n'\
-        .format(Tc / 9.81)
-    out += '<p>Critical mode: {:d}</p>\n'\
-        .format(nc)
 
-    # Buckling loads
-    out += '<h3>Strength</h3>\n'
-    out += '<p>Radial load to buckle spokes: {:.1f} [kgf]</p>\n'\
-        .format(0.)
-    out += '<p>Lateral load to buckle spokes: {:.1f} [kgf]</p>\n'\
-        .format(0.)
-    out += '<p>Estimated peak radial load: {:.1f} [kgf]</p>\n'\
-        .format(0.)
+    out += '<h3>Spoke Tension</h3><table class="table">\n'
+    out += '    <tr><td>Average drive-side tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(avg_tension_side(w, side=1)/9.81,
+                avg_tension_side(w, side=1)/4.448)
+    out += '    <tr><td>Average non-drive-side tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(avg_tension_side(w, side=-1)/9.81,
+                avg_tension_side(w, side=-1)/4.448)
+    out += '    <tr><td>Maximum average tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(Tc/9.81, Tc/4.448)
+    out += '    <tr><td>Critical mode</td><td>{:d}</td></tr>\n'\
+        .format(nc)
+    out += '</table>\n'
+
+    # Critical loads
+    s0 = w.spokes[0]
+    P_lat = K_lat * w.spokes[0].tension / (s0.EA/s0.length * s0.n[0])
+    P_rad = K_rad * w.spokes[0].tension / (s0.EA/s0.length * s0.n[1])
+    P_c_rad = K_lat_0*w.rim.radius / (1 + s0.EA/Tc*K_lat_0/K_rad)
+    out += '<h3>Strength</h3><table class="table">\n'
+    out += '    <tr><td>Radial load to buckle spokes</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(P_rad / 9.81, P_rad / 4.448)
+    out += '    <tr><td>Lateral load to buckle spokes</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(P_lat / 9.81, P_lat / 4.448)
+    out += '    <tr><td>Estimated peak radial load</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(P_c_rad / 9.81, P_c_rad / 4.448)
+    out += '</table>\n'
 
     return out
