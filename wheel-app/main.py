@@ -307,16 +307,11 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
 result_panel = Tabs(tabs=[Panel(child=output_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
 
-footer = Div(text="""
-<small>Powered by <a href="https://bokehplots.com/">Bokeh Server</a> and <a href="https://www.python.org/">Python</a>.<br/>
-Copyright Matthew Ford 2018</small>""")
-
-layout = row(column(tool_panel, button_update, footer), result_panel)
-
+layout = row(column(tool_panel, button_update), result_panel, name='app')
 
 # Initialize the plots with results
 callback_update_results()
 
 # Render the document
 curdoc().add_root(layout)
-curdoc().title = 'Wheel App'
+curdoc().title = 'Bicycle Wheel App'
