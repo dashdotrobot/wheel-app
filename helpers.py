@@ -10,6 +10,7 @@ RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
 RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
              'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
 
+RIM_DEFAULT = 'Sun-Ringle CR18 700C, 36h'
 RIM_PRESETS = {
     'Custom': {},
     'Alex ALX-295': {

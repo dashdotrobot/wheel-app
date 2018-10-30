@@ -7,9 +7,10 @@ from bokeh.plotting import figure, curdoc
 from bokeh.models import CustomJS, Range1d, ColumnDataSource
 from bokeh.models.widgets import *
 
-# -----------------------------------------------------------------------------
-# Callbacks
-# -----------------------------------------------------------------------------
+
+# -------------------------------- CALLBACKS -------------------------------- #
+# Define functions to update the results based on user input.                 #
+# --------------------------------------------------------------------------- #
 def callback_update_results():
     'Build BicycleWheel object and calculate results'
 
@@ -64,7 +65,6 @@ def plot_displacements(wheel):
                         'dT': dT, 'T': T,
                         'width': width, 'side': side, 'color': color})
 
-
 def build_wheel_from_UI():
     'Create a BicycleWheel object from UI inputs'
 
@@ -115,34 +115,39 @@ def build_wheel_from_UI():
     return w
 
 
-# -----------------------------------------------------------------------------
-# Wheel builder panel
-# -----------------------------------------------------------------------------
+# -------------------------------- CONTROLLER ------------------------------- #
+# Define widgets, output canvases, and some native JS callbacks.              #
+# --------------------------------------------------------------------------- #
 
 # Create rim controls
-rim_preset = Select(title='Preset', value='Custom',
-                    options=list(RIM_PRESETS))
+rim_preset = Select(title='Preset', options=list(RIM_PRESETS),
+                    value=RIM_DEFAULT)
 
 callback_reset_preset = CustomJS(args=dict(rim_preset=rim_preset), code="""
     rim_preset.value = 'Custom'
 """)
 
-rim_matl = RadioButtonGroup(labels=list(RIM_MATLS), active=0,
+rim_matl = RadioButtonGroup(labels=list(RIM_MATLS),
+                            active=RIM_PRESETS[RIM_DEFAULT]['matl'],
                             callback=callback_reset_preset)
-rim_size = Select(title='Wheel size', value=list(RIM_SIZES)[0],
-                  options=list(RIM_SIZES),
+rim_size = Select(title='Wheel size', options=list(RIM_SIZES),
+                  value=list(RIM_SIZES)[0],
                   callback=callback_reset_preset)
 rim_mass = Slider(title='Mass [grams',
-                  start=5, end=2000, value=500, step=5,
+                  start=5, end=2000, step=5,
+                  value=RIM_PRESETS[RIM_DEFAULT]['mass'],
                   callback=callback_reset_preset)
 rim_EI1 = Slider(title='Radial stiffness [N m^2]',
-                 start=10, end=1000, value=100, step=10,
+                 start=10, end=1000, step=10,
+                 value=RIM_PRESETS[RIM_DEFAULT]['EIrad'],
                  callback=callback_reset_preset)
 rim_EI2 = Slider(title='Lateral stiffness [N m^2]',
-                 start=10, end=500, value=100, step=10,
+                 start=10, end=500, step=10,
+                 value=RIM_PRESETS[RIM_DEFAULT]['EIlat'],
                  callback=callback_reset_preset)
 rim_GJ = Slider(title='Torsional stiffness [N m^2]',
-                start=10, end=200, value=100, step=5,
+                start=10, end=200, step=5,
+                value=RIM_PRESETS[RIM_DEFAULT]['GJ'],
                 callback=callback_reset_preset)
 
 rim_preset.callback = CustomJS(args=dict(rim_matl=rim_matl,
@@ -166,15 +171,13 @@ rim_preset.callback = CustomJS(args=dict(rim_matl=rim_matl,
     }
 """)
 
-rim_pane = widgetbox(rim_preset,
-                     Div(text='<hr/>'),
-                     rim_matl, rim_size, rim_mass,
-                     rim_EI1, rim_EI2, rim_GJ)
-
 # Create hub controls
-hub_width = Slider(title='Flange separation [mm]', start=10, end=80, step=1, value=50)
-hub_diam = Slider(title='Flange diameter [mm]', start=10, end=80, step=1, value=50)
-hub_offset = Slider(title='Dish offset [mm]', start=-25, end=25, step=1, value=0)
+hub_width = Slider(title='Flange separation [mm]',
+                   start=10, end=80, step=1, value=50)
+hub_diam = Slider(title='Flange diameter [mm]',
+                  start=10, end=80, step=1, value=50)
+hub_offset = Slider(title='Dish offset [mm]',
+                    start=-25, end=25, step=1, value=0)
 
 hub_width.callback = CustomJS(args=dict(hub_offset=hub_offset), code="""
     hub_offset.value = 0
@@ -182,50 +185,39 @@ hub_width.callback = CustomJS(args=dict(hub_offset=hub_offset), code="""
     hub_offset.end = Math.floor(cb_obj.value/2)
 """)
 
-hub_pane = widgetbox(hub_width, hub_diam, hub_offset)
-
 # Create spoke controls
 spk_matl = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
-spk_num = Slider(title='Number of spokes', start=8, end=64, step=4, value=36)
-spk_diam = Slider(title='Diameter [mm]', start=1., end=3., step=0.1, value=2.)
-spk_tension = Slider(title='Average spoke tension [kgf]', start=0., end=200, step=2, value=100)
+spk_num = Slider(title='Number of spokes',
+                 start=8, end=64, step=4, value=36)
+spk_diam = Slider(title='Diameter [mm]',
+                  start=1., end=3., step=0.1, value=2.)
+spk_tension = Slider(title='Average spoke tension [kgf]',
+                     start=0., end=200, step=2, value=100)
 spk_pattern = Select(title='Spoke pattern', value='3-cross',
                      options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
-
-spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 # Forces pane
 f1_dof = RadioButtonGroup(labels=['Lateral', 'Radial', 'Tangential'], active=1)
 f1_loc = TextInput(title='Location [degrees]:', value='0')
 f1_mag = TextInput(title='Magnitude [N]:', value='1000')
-force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
-# Combine Wheelbuilding and Forces pane
-tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
-                        Panel(child=hub_pane, title='Hub'),
-                        Panel(child=spk_pane, title='Spokes'),
-                        Panel(child=force_pane, title='Forces')])
 
+# Computation option controls
+sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes'],
+                               active=[0])
+sim_opt_nmodes = Slider(title='Accuracy', start=2, end=40, step=1, value=20)
 
 # Update Results control
 button_update = Button(label='Update Results', button_type='success')
 button_update.on_click(callback_update_results)
 
 
-# -----------------------------------------------------------------------------
-# Results panel
-# -----------------------------------------------------------------------------
+# ---------------------------- PLOTS AND RESULTS ---------------------------- #
+# Define data sources and result canvases.                                    #
+# --------------------------------------------------------------------------- #
 
-# Text results
+# Panel to display text results
 output_div = Div(text='')
-
-
-### Plot results ###
-
-# Computation option controls
-sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes'],
-                               active=[0])
-sim_opt_nmodes = Slider(title='Accuracy', start=2, end=40, step=1, value=20)
 
 # Displacement plot
 disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
@@ -258,14 +250,36 @@ plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
                       tools='ypan,box_zoom,reset,save',
                       tooltips=[('T', '@T{0.0} [kgf]'), ('deltaT', '@dT{+0.0} [kgf]')])
 plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
-
 plot_tension.vbar(x='theta', top='dT', color='color',
                   width='width', legend='side', source=T_data)
 
 plot_tension.legend.location = 'bottom_left'
 
+
+# ------------------------------ USER INTERFACE ----------------------------- #
+# ------------------------------ USER INTERFACE ----------------------------- #
+# Define widgets, output canvases, and some native JS callbacks.              #
+# --------------------------------------------------------------------------- #
+
+rim_pane = widgetbox(rim_preset,
+                     Div(text='<hr/>'),
+                     rim_matl, rim_size, rim_mass,
+                     rim_EI1, rim_EI2, rim_GJ)
+
+hub_pane = widgetbox(hub_width, hub_diam, hub_offset)
+
+spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
+
+force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
+
 plot_pane = column(row(sim_opts, sim_opt_nmodes),
                    plot_disp, plot_tension)
+
+# Combine Wheelbuilding and Forces pane
+tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
+                        Panel(child=hub_pane, title='Hub'),
+                        Panel(child=spk_pane, title='Spokes'),
+                        Panel(child=force_pane, title='Forces')])
 
 result_panel = Tabs(tabs=[Panel(child=output_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
@@ -274,8 +288,8 @@ footer = Div(text="""
 <small>Powered by <a href="https://bokehplots.com/">Bokeh Server</a> and <a href="https://www.python.org/">Python</a>.<br/>
 Copyright Matthew Ford 2018</small>""")
 
-# Render the document
 layout = row(column(tool_panel, button_update, footer), result_panel)
+
 
 # Initialize the plots with results
 callback_update_results()
