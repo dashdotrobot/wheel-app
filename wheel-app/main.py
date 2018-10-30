@@ -37,6 +37,9 @@ from bokeh.models.widgets import *
 def callback_update_results():
     'Build BicycleWheel object and calculate results'
 
+    button_update.label = 'Please wait...'
+    button_update.button_type = 'warning'
+
     try:
         w = build_wheel_from_UI()
     except Exception as e:
@@ -48,6 +51,9 @@ def callback_update_results():
 
     # Plot results
     plot_displacements(wheel=w)
+
+    button_update.label = 'Update Results'
+    button_update.button_type = 'success'
 
 def plot_displacements(wheel):
     'Plot displacements'
