@@ -112,11 +112,11 @@ def print_wheel_info(w):
 
     # Stiffness properties
     K_lat = calc_lat_stiff(w)
-    # K_lat_0 = calc_lat_stiff(w, tension=False, buckling=False)
+    K_lat_0 = calc_lat_stiff(w, tension=False, buckling=False)
     K_rad = calc_rad_stiff(w)
     K_tor = calc_tor_stiff(w)
 
-    out += '<h3>Stiffness</h3>\n<table class="table">\n'
+    out += '<h4>Stiffness</h4>\n<table class="table">\n'
     out += '    <tr><td>Radial stiffness</td><td>{0:.1f} N/mm</td><td>({1:.1f} lbs/in)</td></tr>\n'\
         .format(K_rad/1000., K_rad * 0.0254/4.448)
     out += '    <tr><td>Lateral stiffness</td><td>{0:.1f} N/mm</td><td>({1:.1f} lbs/in)</td></tr>\n'\
@@ -128,7 +128,7 @@ def print_wheel_info(w):
     # Tension properties
     Tc, nc = calc_buckling_tension(w, approx='linear')
 
-    out += '<h3>Spoke Tension</h3><table class="table">\n'
+    out += '<h4>Spoke Tension</h4><table class="table">\n'
     out += '    <tr><td>Average drive-side tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
         .format(avg_tension_side(w, side=1)/9.81,
                 avg_tension_side(w, side=1)/4.448)
@@ -145,14 +145,15 @@ def print_wheel_info(w):
     s0 = w.spokes[0]
     P_lat = K_lat * w.spokes[0].tension / (s0.EA/s0.length * s0.n[0])
     P_rad = K_rad * w.spokes[0].tension / (s0.EA/s0.length * s0.n[1])
-    # P_c_rad = K_lat_0*w.rim.radius / (1 + s0.EA/Tc*K_lat_0/K_rad)
-    out += '<h3>Strength</h3><table class="table">\n'
+    P_c_rad = K_lat_0*w.rim.radius / (1 + s0.EA/Tc*K_lat_0/K_rad)
+    out += '<h4>Strength</h4><table class="table">\n'
     out += '    <tr><td>Radial load to buckle spokes</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
         .format(P_rad / 9.81, P_rad / 4.448)
     out += '    <tr><td>Lateral load to buckle spokes</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
         .format(P_lat / 9.81, P_lat / 4.448)
-    # out += '    <tr><td>Estimated peak radial load</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
-        # .format(P_c_rad / 9.81, P_c_rad / 4.448)
+    out += '    <tr><td>Estimated peak radial load</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(P_c_rad / 9.81, P_c_rad / 4.448)
     out += '</table>\n'
+
 
     return out
