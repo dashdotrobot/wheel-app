@@ -2,7 +2,7 @@
 # Bicycle Wheel App
 # Web-based tool for calculating mechanical properties of bicycle wheels
 #
-# wheel_app.py : Main routine (run by Bokeh Server)
+# main.py   : Main routine (run by Bokeh Server)
 #
 # Author    : Matthew Ford, Ph.D <www.dashdotrobot.com>
 # Copyright : Matthew Ford (2018)
