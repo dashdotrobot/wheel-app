@@ -39,18 +39,20 @@ def callback_update_results():
 
     button_update.label = 'Please wait...'
     button_update.button_type = 'warning'
+    status_div.text = ''
 
     try:
         w = build_wheel_from_UI()
+
+        # Print basic wheel information
+        output_div.text = print_wheel_info(w)
+
+        # Plot results
+        plot_displacements(wheel=w)
+
+
     except Exception as e:
-        output_div.text = 'Error building wheel: {:s}'.format(repr(e))
-        return False
-
-    # Print basic wheel information
-    output_div.text = print_wheel_info(w)
-
-    # Plot results
-    plot_displacements(wheel=w)
+        status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
 
     button_update.label = 'Update Results'
     button_update.button_type = 'success'
@@ -247,6 +249,7 @@ button_update.on_click(callback_update_results)
 
 # Panel to display text results
 output_div = Div(text='', width=500)
+status_div = Div(text='')
 
 # Displacement plot
 disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
@@ -313,7 +316,7 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
 result_panel = Tabs(tabs=[Panel(child=output_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
 
-layout = row(column(tool_panel, button_update), result_panel, name='app')
+layout = row(column(tool_panel, button_update, status_div), result_panel, name='app')
 
 # Initialize the plots with results
 callback_update_results()
