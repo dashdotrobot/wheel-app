@@ -27,7 +27,7 @@ from helpers import *
 
 from bokeh.layouts import column, row, widgetbox
 from bokeh.plotting import figure, curdoc
-from bokeh.models import CustomJS, Range1d, ColumnDataSource
+from bokeh.models import CustomJS, Range1d, ColumnDataSource, FixedTicker
 from bokeh.models.widgets import *
 
 
@@ -81,6 +81,10 @@ def plot_displacements(wheel):
                            'disp_v': Bv.dot(dm)*1e3,
                            'disp_w': Bw.dot(dm)*1e3})
 
+    # Update grid spacing to match new number of spokes
+    plot_disp.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi,
+                                                           int(spk_num.value)+1))
+
     # Update spoke tensions
     theta_spk = np.array([s.rim_pt[1] for s in wheel.spokes])
     theta_spk = np.where(theta_spk <= np.pi, theta_spk, theta_spk - 2*np.pi)
@@ -95,6 +99,10 @@ def plot_displacements(wheel):
     T_data.data.update({'theta': theta_spk,
                         'dT': dT, 'T': T,
                         'width': width, 'side': side, 'color': color})
+
+    # Update grid spacing to match new number of spokes
+    plot_tension.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi,
+                                                              int(spk_num.value)+1))
 
 def build_wheel_from_UI():
     'Create a BicycleWheel object from UI inputs'
@@ -262,6 +270,10 @@ plot_disp = figure(plot_height=240,
                    tools='ypan,box_zoom,reset,save',
                    tooltips=[('value', '@$name')])
 plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
+plot_disp.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi, int(spk_num.value)))
+plot_disp.xaxis.major_tick_line_color = None
+plot_disp.xaxis.minor_tick_line_color = None
+plot_disp.xaxis.major_label_text_font_size = '0pt'
 plot_disp.yaxis.axis_label = 'Displacement [mm]'
 
 plot_disp.line('theta', 'disp_u', legend='lateral', name='disp_u',
@@ -282,6 +294,10 @@ plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
                       tools='ypan,box_zoom,reset,save',
                       tooltips=[('T', '@T{0.0} [kgf]'),
                                 ('deltaT', '@dT{+0.0} [kgf]')])
+plot_tension.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi, int(spk_num.value)))
+plot_tension.xaxis.major_tick_line_color = None
+plot_tension.xaxis.minor_tick_line_color = None
+plot_tension.xaxis.major_label_text_font_size = '0pt'
 plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
 plot_tension.vbar(x='theta', top='dT', color='color',
                   width='width', legend='side', source=T_data)
