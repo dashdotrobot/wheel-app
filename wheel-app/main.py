@@ -167,6 +167,58 @@ def build_wheel_from_UI():
     return w
 
 
+# ---------------------------- PLOTS AND RESULTS --------------------------- #
+# Define data sources and result canvases.                                   #
+# -------------------------------------------------------------------------- #
+
+# Panel to display text results
+result_div = Div(text='Click Update Results to calculate wheel properties.', width=500)
+status_div = Div(text='')
+
+# Displacement plot
+disp_names = [u+'_'+o for o in SIM_OPTS.keys() for u in ['u', 'v', 'w']]
+disp_data_dict = {'theta': np.linspace(-np.pi, np.pi, 501)}
+disp_data_dict.update(dict.fromkeys(disp_names, np.zeros(501)))
+
+disp_data = ColumnDataSource(data=disp_data_dict)
+
+plot_disp = figure(plot_height=240,
+                   tools='ypan,box_zoom,reset,save',
+                   tooltips=[('value', '@$name')])
+plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
+plot_disp.xaxis.major_tick_line_color = None
+plot_disp.xaxis.minor_tick_line_color = None
+plot_disp.xaxis.major_label_text_font_size = '0pt'
+plot_disp.yaxis.axis_label = 'Displacement [mm]'
+
+line_u = plot_disp.line('theta', 'u_T_', legend='lateral', name='disp_u',
+                        line_width=2, color='#1f77b4', source=disp_data)
+line_v = plot_disp.line('theta', 'v_T_', legend='radial', name='disp_v',
+                        line_width=2, color='#ff7f0e', source=disp_data)
+line_w = plot_disp.line('theta', 'w_T_', legend='tangential', name='disp_w',
+                        line_width=2, color='#2ca02c', source=disp_data)
+
+plot_disp.legend.location = 'top_left'
+plot_disp.legend.click_policy = 'hide'
+
+# Spoke tension plot
+T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
+                                'width': [], 'side': [], 'color': []})
+
+plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
+                      tools='ypan,box_zoom,reset,save',
+                      tooltips=[('T', '@T{0.0} [kgf]'),
+                                ('deltaT', '@dT{+0.0} [kgf]')])
+plot_tension.xaxis.major_tick_line_color = None
+plot_tension.xaxis.minor_tick_line_color = None
+plot_tension.xaxis.major_label_text_font_size = '0pt'
+plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
+plot_tension.vbar(x='theta', top='dT', color='color',
+                  width='width', legend='side', source=T_data)
+
+plot_tension.legend.location = 'bottom_left'
+
+
 # ------------------------------- CONTROLLER ------------------------------- #
 # Define widgets, output canvases, and some native JS callbacks.             #
 # -------------------------------------------------------------------------- #
@@ -260,63 +312,21 @@ sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes'],
                                active=[i for i in range(len(sim_opts_list))
                                        if sim_opts_list[i]])
 
+
+sim_opts.callback = CustomJS(args=dict(u=line_u, v=line_v, w=line_w, disp_data=disp_data), code="""
+    opt_str = ((cb_obj.active.indexOf(0) >= 0 ? 'T' : '_') +
+               (cb_obj.active.indexOf(1) >= 0 ? 'S' : '_'))
+
+    u.glyph.y.field = 'u_' + opt_str
+    v.glyph.y.field = 'v_' + opt_str
+    w.glyph.y.field = 'w_' + opt_str
+
+    disp_data.change.emit()
+""")
+
 # Update Results control
 button_update = Button(label='Update Results', button_type='success')
 button_update.on_click(callback_update_results)
-
-
-# ---------------------------- PLOTS AND RESULTS --------------------------- #
-# Define data sources and result canvases.                                   #
-# -------------------------------------------------------------------------- #
-
-# Panel to display text results
-result_div = Div(text='Click Update Results to calculate wheel properties.', width=500)
-status_div = Div(text='')
-
-# Displacement plot
-disp_names = [u+'_'+o for o in SIM_OPTS.keys() for u in ['u', 'v', 'w']]
-disp_data_dict = {'theta': np.linspace(-np.pi, np.pi, 501)}
-disp_data_dict.update(dict.fromkeys(disp_names, np.zeros(501)))
-
-disp_data = ColumnDataSource(data=disp_data_dict)
-
-plot_disp = figure(plot_height=240,
-                   tools='ypan,box_zoom,reset,save',
-                   tooltips=[('value', '@$name')])
-plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
-plot_disp.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi, int(spk_num.value)))
-plot_disp.xaxis.major_tick_line_color = None
-plot_disp.xaxis.minor_tick_line_color = None
-plot_disp.xaxis.major_label_text_font_size = '0pt'
-plot_disp.yaxis.axis_label = 'Displacement [mm]'
-
-line_U = plot_disp.line('theta', 'u_T_', legend='lateral', name='disp_u',
-                        line_width=2, color='#1f77b4', source=disp_data)
-line_v = plot_disp.line('theta', 'v_T_', legend='radial', name='disp_v',
-                        line_width=2, color='#ff7f0e', source=disp_data)
-line_w = plot_disp.line('theta', 'w_T_', legend='tangential', name='disp_w',
-                        line_width=2, color='#2ca02c', source=disp_data)
-
-plot_disp.legend.location = 'top_left'
-plot_disp.legend.click_policy = 'hide'
-
-# Spoke tension plot
-T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
-                                'width': [], 'side': [], 'color': []})
-
-plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
-                      tools='ypan,box_zoom,reset,save',
-                      tooltips=[('T', '@T{0.0} [kgf]'),
-                                ('deltaT', '@dT{+0.0} [kgf]')])
-plot_tension.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi, int(spk_num.value)))
-plot_tension.xaxis.major_tick_line_color = None
-plot_tension.xaxis.minor_tick_line_color = None
-plot_tension.xaxis.major_label_text_font_size = '0pt'
-plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
-plot_tension.vbar(x='theta', top='dT', color='color',
-                  width='width', legend='side', source=T_data)
-
-plot_tension.legend.location = 'bottom_left'
 
 
 # ----------------------------- USER INTERFACE ----------------------------- #
