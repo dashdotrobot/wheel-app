@@ -31,6 +31,7 @@ from bikewheelcalc import *
 SIM_OPTS_NMODES = 24
 SIM_OPTS_TENSION = True
 SIM_OPTS_SMEARED = False
+SIM_OPTS_DT = True
 
 # Enumerated list of simulation options
 SIM_OPTS = {'TS': (True, True), 'T_': (True, False),
