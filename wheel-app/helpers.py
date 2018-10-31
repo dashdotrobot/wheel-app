@@ -32,6 +32,10 @@ SIM_OPTS_NMODES = 24
 SIM_OPTS_TENSION = True
 SIM_OPTS_SMEARED = False
 
+# Enumerated list of simulation options
+SIM_OPTS = {'TS': (True, True), 'T_': (True, False),
+            '_S': (False, True), '__': (False, False)}
+
 # --------------------------------- PRESETS -------------------------------- #
 # Default choices for rim, materials, spoke patterns, etc.                   #
 # -------------------------------------------------------------------------- #

@@ -65,23 +65,34 @@ def plot_displacements(wheel):
     # Calculate displacements
     mm = ModeMatrix(wheel, N=SIM_OPTS_NMODES)
 
-    K = (mm.K_rim(tension=(0 in sim_opts.active), r0=True) +
-         mm.K_spk(tension=(0 in sim_opts.active), smeared_spokes=(1 in sim_opts.active)))
-
+    # Pre-compute with and without tension effects and smeared spokes
     f = [0., 0., 0., 0.]
     f[int(f1_dof.active)] = float(f1_mag.value)
     F_ext = mm.F_ext(f_theta=float(f1_loc.value) * np.pi/180., f=f)
-
-    dm = np.linalg.solve(K, F_ext)
 
     Bu = mm.B_theta(theta=disp_data.data['theta'], comps=[0])
     Bv = mm.B_theta(theta=disp_data.data['theta'], comps=[1])
     Bw = mm.B_theta(theta=disp_data.data['theta'], comps=[2])
 
+    disp_names = [u+'_'+o for o in SIM_OPTS.keys() for u in ['u', 'v', 'w']]
+
+    new_data = dict.fromkeys(disp_names)
+    for o, opts in SIM_OPTS.items():
+        try:
+            K = (mm.K_rim(tension=opts[0], r0=True) +
+                 mm.K_spk(tension=opts[0], smeared_spokes=opts[1]))
+
+            dm = np.linalg.solve(K, F_ext)
+
+        except Exception as e:
+            dm = np.zeros(F_ext.shape)
+
+        new_data['u_'+o] = Bu.dot(dm)*1e3
+        new_data['v_'+o] = Bv.dot(dm)*1e3
+        new_data['w_'+o] = Bw.dot(dm)*1e3
+
     # Update ColumnDataSource
-    disp_data.data.update({'disp_u': Bu.dot(dm)*1e3,
-                           'disp_v': Bv.dot(dm)*1e3,
-                           'disp_w': Bw.dot(dm)*1e3})
+    disp_data.data.update(new_data)
 
     # Update grid spacing to match new number of spokes
     plot_disp.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi,
@@ -156,7 +167,7 @@ def build_wheel_from_UI():
     return w
 
 
-# -------------------------------- CONTROLLER ------------------------------ #
+# ------------------------------- CONTROLLER ------------------------------- #
 # Define widgets, output canvases, and some native JS callbacks.             #
 # -------------------------------------------------------------------------- #
 
@@ -263,11 +274,11 @@ result_div = Div(text='Click Update Results to calculate wheel properties.', wid
 status_div = Div(text='')
 
 # Displacement plot
-disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
-                                   'disp_u': np.zeros(501),
-                                   'disp_v': np.zeros(501),
-                                   'disp_w': np.zeros(501),
-                                   'disp_Rphi': np.zeros(501)})
+disp_names = [u+'_'+o for o in SIM_OPTS.keys() for u in ['u', 'v', 'w']]
+disp_data_dict = {'theta': np.linspace(-np.pi, np.pi, 501)}
+disp_data_dict.update(dict.fromkeys(disp_names, np.zeros(501)))
+
+disp_data = ColumnDataSource(data=disp_data_dict)
 
 plot_disp = figure(plot_height=240,
                    tools='ypan,box_zoom,reset,save',
@@ -279,12 +290,12 @@ plot_disp.xaxis.minor_tick_line_color = None
 plot_disp.xaxis.major_label_text_font_size = '0pt'
 plot_disp.yaxis.axis_label = 'Displacement [mm]'
 
-plot_disp.line('theta', 'disp_u', legend='lateral', name='disp_u',
-               line_width=2, color='#1f77b4', source=disp_data)
-plot_disp.line('theta', 'disp_v', legend='radial', name='disp_v',
-               line_width=2, color='#ff7f0e', source=disp_data)
-plot_disp.line('theta', 'disp_w', legend='tangential', name='disp_w',
-               line_width=2, color='#2ca02c', source=disp_data)
+line_U = plot_disp.line('theta', 'u_T_', legend='lateral', name='disp_u',
+                        line_width=2, color='#1f77b4', source=disp_data)
+line_v = plot_disp.line('theta', 'v_T_', legend='radial', name='disp_v',
+                        line_width=2, color='#ff7f0e', source=disp_data)
+line_w = plot_disp.line('theta', 'w_T_', legend='tangential', name='disp_w',
+                        line_width=2, color='#2ca02c', source=disp_data)
 
 plot_disp.legend.location = 'top_left'
 plot_disp.legend.click_policy = 'hide'
