@@ -42,14 +42,16 @@ def callback_update_results():
     status_div.text = ''
 
     try:
+
         w = build_wheel_from_UI()
 
-        # Print basic wheel information
-        output_div.text = print_wheel_info(w)
-
-        # Plot results
-        plot_displacements(wheel=w)
-
+        # Update only the current pane
+        if result_panel.active == 0:  # Summary results
+            result_div.text = print_wheel_info(w)
+        elif result_panel.active == 1:  # Plots
+            plot_displacements(wheel=w)
+        else:
+            raise ValueError('Unable to determine active results view.')
 
     except Exception as e:
         status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
@@ -61,25 +63,45 @@ def plot_displacements(wheel):
     'Plot displacements'
 
     # Calculate displacements
-    mm = ModeMatrix(wheel, N=int(sim_opt_nmodes.value))
+    mm = ModeMatrix(wheel, N=SIM_OPTS_NMODES)
 
-    K = (mm.K_rim(tension=(0 in sim_opts.active), r0=True) +
-         mm.K_spk(tension=(0 in sim_opts.active), smeared_spokes=(1 in sim_opts.active)))
-
+    # Pre-compute with and without tension effects and smeared spokes
     f = [0., 0., 0., 0.]
     f[int(f1_dof.active)] = float(f1_mag.value)
     F_ext = mm.F_ext(f_theta=float(f1_loc.value) * np.pi/180., f=f)
-
-    dm = np.linalg.solve(K, F_ext)
 
     Bu = mm.B_theta(theta=disp_data.data['theta'], comps=[0])
     Bv = mm.B_theta(theta=disp_data.data['theta'], comps=[1])
     Bw = mm.B_theta(theta=disp_data.data['theta'], comps=[2])
 
-    # Update ColumnDataSource
-    disp_data.data.update({'disp_u': Bu.dot(dm)*1e3,
-                           'disp_v': Bv.dot(dm)*1e3,
-                           'disp_w': Bw.dot(dm)*1e3})
+    new_disp_data = \
+        dict.fromkeys([u+'_'+o for o in SIM_OPTS.keys() for u in ['u', 'v', 'w']])
+    new_T_data = dict.fromkeys(['dT_'+o for o in SIM_OPTS.keys()])
+    for o, opts in SIM_OPTS.items():
+        try:
+            K = (mm.K_rim(tension=opts[0], r0=True) +
+                 mm.K_spk(tension=opts[0], smeared_spokes=opts[1]))
+
+            dm = np.linalg.solve(K, F_ext)
+
+        except Exception as e:
+            dm = np.zeros(F_ext.shape)
+            status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
+
+        new_disp_data['u_'+o] = Bu.dot(dm)*1e3
+        new_disp_data['v_'+o] = Bv.dot(dm)*1e3
+        new_disp_data['w_'+o] = Bw.dot(dm)*1e3
+
+        # Calculate spoke tensions
+        dT = [-s.EA/s.length/9.81 *
+              np.dot(s.n, mm.B_theta(s.rim_pt[1], comps=[0, 1, 2]).dot(dm))
+             for s in wheel.spokes]
+
+        new_T_data['dT_'+o] = dT
+
+
+    # Update displacements ColumnDataSource
+    disp_data.data.update(new_disp_data)
 
     # Update grid spacing to match new number of spokes
     plot_disp.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi,
@@ -88,17 +110,23 @@ def plot_displacements(wheel):
     # Update spoke tensions
     theta_spk = np.array([s.rim_pt[1] for s in wheel.spokes])
     theta_spk = np.where(theta_spk <= np.pi, theta_spk, theta_spk - 2*np.pi)
-    dT = [-s.EA/s.length/9.81 *
-          np.dot(s.n, mm.B_theta(s.rim_pt[1], comps=[0, 1, 2]).dot(dm))
-          for s in wheel.spokes]
-    T = [s.tension/9.81 + delT for s, delT in zip(wheel.spokes, dT)]
+    T0 = np.array([s.tension/9.81 for s in wheel.spokes])
     width = 0.5 * 2*np.pi/len(wheel.spokes) * np.ones(len(wheel.spokes))
     side = ['right' if s.hub_pt[2] > 0 else 'left' for s in wheel.spokes]
     color = ['#ff7f0e' if s == 'right' else '#1f77b4' for s in side]
 
-    T_data.data.update({'theta': theta_spk,
-                        'dT': dT, 'T': T,
-                        'width': width, 'side': side, 'color': color})
+    # Calculate bar heights based on sim options
+    opt_str = (('T' if 0 in sim_opts.active else '_') +
+               ('S' if 1 in sim_opts.active else '_'))
+    if 2 in sim_opts.active:
+        y = new_T_data['dT_'+opt_str]
+    else:
+        y = new_T_data['dT_'+opt_str] + T0
+
+    new_T_data.update({'theta': theta_spk, 'width': width, 'side': side, 'color': color,
+                       'y': y, 'T0': T0})
+
+    T_data.data.update(new_T_data)
 
     # Update grid spacing to match new number of spokes
     plot_tension.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi,
@@ -154,7 +182,58 @@ def build_wheel_from_UI():
     return w
 
 
-# -------------------------------- CONTROLLER ------------------------------ #
+# ---------------------------- PLOTS AND RESULTS --------------------------- #
+# Define data sources and result canvases.                                   #
+# -------------------------------------------------------------------------- #
+
+# Panel to display text results
+result_div = Div(text='Click Update Results to calculate wheel properties.', width=500)
+status_div = Div(text='')
+
+# Displacement plot
+disp_names = [u+'_'+o for o in SIM_OPTS.keys() for u in ['u', 'v', 'w']]
+disp_data_dict = {'theta': np.linspace(-np.pi, np.pi, 501)}
+disp_data_dict.update(dict.fromkeys(disp_names, np.zeros(501)))
+disp_data = ColumnDataSource(data=disp_data_dict)
+
+plot_disp = figure(plot_height=240,
+                   tools='ypan,box_zoom,reset,save',
+                   tooltips=[('value', '@$name')])
+plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
+plot_disp.xaxis.major_tick_line_color = None
+plot_disp.xaxis.minor_tick_line_color = None
+plot_disp.xaxis.major_label_text_font_size = '0pt'
+plot_disp.yaxis.axis_label = 'Displacement [mm]'
+
+line_u = plot_disp.line('theta', 'u_T_', legend='lateral', name='disp_u',
+                        line_width=2, color='#1f77b4', source=disp_data)
+line_v = plot_disp.line('theta', 'v_T_', legend='radial', name='disp_v',
+                        line_width=2, color='#ff7f0e', source=disp_data)
+line_w = plot_disp.line('theta', 'w_T_', legend='tangential', name='disp_w',
+                        line_width=2, color='#2ca02c', source=disp_data)
+
+plot_disp.legend.location = 'top_left'
+plot_disp.legend.click_policy = 'hide'
+
+# Spoke tension plot
+T_data_dict = {'theta': [], 'width': [], 'side': [], 'color': [], 'y': [], 'T0': []}
+T_data_dict.update(dict.fromkeys(['dT_'+o for o in SIM_OPTS.keys()], []))
+T_data = ColumnDataSource(data=T_data_dict)
+
+plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
+                      tools='ypan,box_zoom,reset,save',
+                      tooltips=[('T', '@y{0.0} [kgf]')])
+plot_tension.xaxis.major_tick_line_color = None
+plot_tension.xaxis.minor_tick_line_color = None
+plot_tension.xaxis.major_label_text_font_size = '0pt'
+plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
+bar_T = plot_tension.vbar(x='theta', top='y', color='color',
+                          width='width', legend='side', source=T_data)
+
+plot_tension.legend.location = 'bottom_left'
+
+
+# ------------------------------- CONTROLLER ------------------------------- #
 # Define widgets, output canvases, and some native JS callbacks.             #
 # -------------------------------------------------------------------------- #
 
@@ -242,67 +321,40 @@ f1_mag = TextInput(title='Magnitude [N]:', value='1000')
 
 
 # Computation option controls
-sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes'],
-                               active=[0])
-sim_opt_nmodes = Slider(title='Accuracy', start=2, end=40, step=1, value=20)
+sim_opts_list = [SIM_OPTS_TENSION, SIM_OPTS_SMEARED, SIM_OPTS_DT]
+sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes', 'Show tension change'],
+                               active=[i for i in range(len(sim_opts_list))
+                                       if sim_opts_list[i]])
+
+sim_opts.callback = CustomJS(args=dict(u=line_u, v=line_v, w=line_w, T=bar_T, disp_data=disp_data, T_data=T_data), code="""
+    var opt_str = ((cb_obj.active.indexOf(0) >= 0 ? 'T' : '_') +
+                   (cb_obj.active.indexOf(1) >= 0 ? 'S' : '_'))
+
+    u.glyph.y.field = 'u_' + opt_str
+    v.glyph.y.field = 'v_' + opt_str
+    w.glyph.y.field = 'w_' + opt_str
+
+    disp_data.change.emit()
+
+    var data = T_data.data
+    var T0 = data['T0']
+    var dT = data['dT_' + opt_str]
+    var y = data['y']
+
+    for(var i=0; i < y.length; i++) {
+        if (cb_obj.active.indexOf(2) >= 0) {
+            y[i] = dT[i]
+        } else {
+            y[i] = dT[i] + T0[i]
+        }
+    }
+
+    T_data.change.emit()
+""")
 
 # Update Results control
 button_update = Button(label='Update Results', button_type='success')
 button_update.on_click(callback_update_results)
-
-
-# ---------------------------- PLOTS AND RESULTS --------------------------- #
-# Define data sources and result canvases.                                   #
-# -------------------------------------------------------------------------- #
-
-# Panel to display text results
-output_div = Div(text='', width=500)
-status_div = Div(text='')
-
-# Displacement plot
-disp_data = ColumnDataSource(data={'theta': np.linspace(-np.pi, np.pi, 501),
-                                   'disp_u': np.zeros(501),
-                                   'disp_v': np.zeros(501),
-                                   'disp_w': np.zeros(501),
-                                   'disp_Rphi': np.zeros(501)})
-
-plot_disp = figure(plot_height=240,
-                   tools='ypan,box_zoom,reset,save',
-                   tooltips=[('value', '@$name')])
-plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
-plot_disp.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi, int(spk_num.value)))
-plot_disp.xaxis.major_tick_line_color = None
-plot_disp.xaxis.minor_tick_line_color = None
-plot_disp.xaxis.major_label_text_font_size = '0pt'
-plot_disp.yaxis.axis_label = 'Displacement [mm]'
-
-plot_disp.line('theta', 'disp_u', legend='lateral', name='disp_u',
-               line_width=2, color='#1f77b4', source=disp_data)
-plot_disp.line('theta', 'disp_v', legend='radial', name='disp_v',
-               line_width=2, color='#ff7f0e', source=disp_data)
-plot_disp.line('theta', 'disp_w', legend='tangential', name='disp_w',
-               line_width=2, color='#2ca02c', source=disp_data)
-
-plot_disp.legend.location = 'top_left'
-plot_disp.legend.click_policy = 'hide'
-
-# Spoke tension plot
-T_data = ColumnDataSource(data={'theta': [], 'T': [], 'dT': [],
-                                'width': [], 'side': [], 'color': []})
-
-plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
-                      tools='ypan,box_zoom,reset,save',
-                      tooltips=[('T', '@T{0.0} [kgf]'),
-                                ('deltaT', '@dT{+0.0} [kgf]')])
-plot_tension.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi, int(spk_num.value)))
-plot_tension.xaxis.major_tick_line_color = None
-plot_tension.xaxis.minor_tick_line_color = None
-plot_tension.xaxis.major_label_text_font_size = '0pt'
-plot_tension.yaxis.axis_label = 'Spoke tension [kgf]'
-plot_tension.vbar(x='theta', top='dT', color='color',
-                  width='width', legend='side', source=T_data)
-
-plot_tension.legend.location = 'bottom_left'
 
 
 # ----------------------------- USER INTERFACE ----------------------------- #
@@ -320,7 +372,7 @@ spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
-plot_pane = column(row(sim_opts, sim_opt_nmodes),
+plot_pane = column(widgetbox(sim_opts, width=500),
                    plot_disp, plot_tension)
 
 # Combine Wheelbuilding and Forces pane
@@ -329,13 +381,10 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
                         Panel(child=spk_pane, title='Spokes'),
                         Panel(child=force_pane, title='Forces')])
 
-result_panel = Tabs(tabs=[Panel(child=output_div, title='Results'),
+result_panel = Tabs(tabs=[Panel(child=result_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
 
 layout = row(column(tool_panel, button_update, status_div), result_panel, name='app')
-
-# Initialize the plots with results
-callback_update_results()
 
 # Render the document
 curdoc().add_root(layout)
