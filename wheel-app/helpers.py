@@ -24,6 +24,18 @@ import numpy as np
 from bikewheelcalc import *
 
 
+# --------------------------- SIMULATION DEFAULTS -------------------------- #
+# Default values for solver. Some can be changed in the UI.                  #
+# -------------------------------------------------------------------------- #
+
+SIM_OPTS_NMODES = 24
+SIM_OPTS_TENSION = True
+SIM_OPTS_SMEARED = False
+
+# --------------------------------- PRESETS -------------------------------- #
+# Default choices for rim, materials, spoke patterns, etc.                   #
+# -------------------------------------------------------------------------- #
+
 RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
              '20"':       {'radius': 0.400/2},
              '26"':       {'radius': 0.559/2},
@@ -111,10 +123,10 @@ def print_wheel_info(w):
     # TODO
 
     # Stiffness properties
-    K_lat = calc_lat_stiff(w)
-    K_lat_0 = calc_lat_stiff(w, tension=False, buckling=False)
-    K_rad = calc_rad_stiff(w)
-    K_tor = calc_tor_stiff(w)
+    K_lat = calc_lat_stiff(w, N=SIM_OPTS_NMODES)
+    K_lat_0 = calc_lat_stiff(w, N=SIM_OPTS_NMODES, tension=False, buckling=False)
+    K_rad = calc_rad_stiff(w, N=SIM_OPTS_NMODES)
+    K_tor = calc_tor_stiff(w, N=SIM_OPTS_NMODES)
 
     out += '<h4>Stiffness</h4>\n<table class="table">\n'
     out += '    <tr><td>Radial stiffness</td><td>{0:.1f} N/mm</td><td>({1:.1f} lbs/in)</td></tr>\n'\

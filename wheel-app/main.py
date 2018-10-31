@@ -63,7 +63,7 @@ def plot_displacements(wheel):
     'Plot displacements'
 
     # Calculate displacements
-    mm = ModeMatrix(wheel, N=int(sim_opt_nmodes.value))
+    mm = ModeMatrix(wheel, N=SIM_OPTS_NMODES)
 
     K = (mm.K_rim(tension=(0 in sim_opts.active), r0=True) +
          mm.K_spk(tension=(0 in sim_opts.active), smeared_spokes=(1 in sim_opts.active)))
@@ -244,9 +244,10 @@ f1_mag = TextInput(title='Magnitude [N]:', value='1000')
 
 
 # Computation option controls
+sim_opts_list = [SIM_OPTS_TENSION, SIM_OPTS_SMEARED]
 sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes'],
-                               active=[0])
-sim_opt_nmodes = Slider(title='Accuracy', start=2, end=40, step=1, value=20)
+                               active=[i for i in range(len(sim_opts_list))
+                                       if sim_opts_list[i]])
 
 # Update Results control
 button_update = Button(label='Update Results', button_type='success')
@@ -322,7 +323,7 @@ spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
-plot_pane = column(row(sim_opts, sim_opt_nmodes),
+plot_pane = column(widgetbox(sim_opts),
                    plot_disp, plot_tension)
 
 # Combine Wheelbuilding and Forces pane
