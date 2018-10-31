@@ -371,7 +371,7 @@ spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
 force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
-plot_pane = column(widgetbox(sim_opts),
+plot_pane = column(widgetbox(sim_opts, width=500),
                    plot_disp, plot_tension)
 
 # Combine Wheelbuilding and Forces pane
