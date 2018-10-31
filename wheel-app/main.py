@@ -42,14 +42,16 @@ def callback_update_results():
     status_div.text = ''
 
     try:
+
         w = build_wheel_from_UI()
 
-        # Print basic wheel information
-        output_div.text = print_wheel_info(w)
-
-        # Plot results
-        plot_displacements(wheel=w)
-
+        # Update only the current pane
+        if result_panel.active == 0:  # Summary results
+            result_div.text = print_wheel_info(w)
+        elif result_panel.active == 1:  # Plots
+            plot_displacements(wheel=w)
+        else:
+            raise ValueError('Unable to determine active results view.')
 
     except Exception as e:
         status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
@@ -256,7 +258,7 @@ button_update.on_click(callback_update_results)
 # -------------------------------------------------------------------------- #
 
 # Panel to display text results
-output_div = Div(text='', width=500)
+result_div = Div(text='Click Update Results to calculate wheel properties.', width=500)
 status_div = Div(text='')
 
 # Displacement plot
@@ -329,13 +331,10 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
                         Panel(child=spk_pane, title='Spokes'),
                         Panel(child=force_pane, title='Forces')])
 
-result_panel = Tabs(tabs=[Panel(child=output_div, title='Results'),
+result_panel = Tabs(tabs=[Panel(child=result_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
 
 layout = row(column(tool_panel, button_update, status_div), result_panel, name='app')
-
-# Initialize the plots with results
-callback_update_results()
 
 # Render the document
 curdoc().add_root(layout)
