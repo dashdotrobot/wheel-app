@@ -86,6 +86,7 @@ def plot_displacements(wheel):
 
         except Exception as e:
             dm = np.zeros(F_ext.shape)
+            status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
 
         new_disp_data['u_'+o] = Bu.dot(dm)*1e3
         new_disp_data['v_'+o] = Bv.dot(dm)*1e3
@@ -109,7 +110,7 @@ def plot_displacements(wheel):
     # Update spoke tensions
     theta_spk = np.array([s.rim_pt[1] for s in wheel.spokes])
     theta_spk = np.where(theta_spk <= np.pi, theta_spk, theta_spk - 2*np.pi)
-    T0 = [s.tension/9.81 for s in wheel.spokes]
+    T0 = np.array([s.tension/9.81 for s in wheel.spokes])
     width = 0.5 * 2*np.pi/len(wheel.spokes) * np.ones(len(wheel.spokes))
     side = ['right' if s.hub_pt[2] > 0 else 'left' for s in wheel.spokes]
     color = ['#ff7f0e' if s == 'right' else '#1f77b4' for s in side]
