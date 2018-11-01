@@ -45,13 +45,16 @@ def callback_update_results():
 
         w = build_wheel_from_UI()
 
-        # Update only the current pane
-        if result_panel.active == 0:  # Summary results
-            result_div.text = print_wheel_info(w)
-        elif result_panel.active == 1:  # Plots
-            plot_displacements(wheel=w)
-        else:
-            raise ValueError('Unable to determine active results view.')
+        # Determine active tab
+        active_tab = result_panel.active
+
+        # Update active tab first
+        result_panel_callbacks[active_tab](w)
+
+        # Update inactive tabs
+        for a, u in enumerate(result_panel_callbacks):
+            if a != active_tab:
+                u(w)
 
     except Exception as e:
         status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
@@ -59,8 +62,8 @@ def callback_update_results():
     button_update.label = 'Update Results'
     button_update.button_type = 'success'
 
-def plot_displacements(wheel):
-    'Plot displacements'
+def update_plots(wheel):
+    'Update Plots tab'
 
     # Calculate displacements
     mm = ModeMatrix(wheel, N=SIM_OPTS_NMODES)
@@ -131,6 +134,10 @@ def plot_displacements(wheel):
     # Update grid spacing to match new number of spokes
     plot_tension.xgrid.ticker = FixedTicker(ticks=np.linspace(-np.pi, np.pi,
                                                               int(spk_num.value)+1))
+
+def update_results(wheel):
+    'Update Results tab'
+    result_div.text = print_wheel_info(wheel)
 
 def build_wheel_from_UI():
     'Create a BicycleWheel object from UI inputs'
@@ -396,7 +403,7 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
 
 result_panel = Tabs(tabs=[Panel(child=result_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
-result_panel.on_change('active', lambda attr, old, new: callback_update_results())
+result_panel_callbacks = [update_results, update_plots]
 
 layout = row(column(tool_panel, button_update, status_div), result_panel, name='app')
 
