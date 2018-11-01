@@ -138,9 +138,10 @@ def build_wheel_from_UI():
     w = BicycleWheel()
 
     # Hub
+    offset = 0.
     w.hub = Hub(diameter=float(hub_diam.value)/1000.,
                 width=float(hub_width.value)/1000.,
-                offset=float(hub_offset.value)/1000.)
+                offset=offset/1000.)
 
     # Rim
     r_matl = list(RIM_MATLS)[rim_matl.active]
@@ -290,18 +291,31 @@ rim_preset.callback = CustomJS(args=dict(rim_matl=rim_matl,
 """)
 
 # Create hub controls
-hub_width = Slider(title='Flange separation [mm]',
-                   start=10, end=80, step=1, value=50)
+hub_symm = RadioButtonGroup(labels=['Symmetric', 'Asymmetric (e.g. rear wheel)'], active=0)
+hub_width = RangeSlider(title='Rim-to-flange distance [mm]',
+                        start=-50, end=50, step=1, value=(-25,25))
 hub_diam = Slider(title='Flange diameter [mm]',
                   start=10, end=80, step=1, value=50)
-hub_offset = Slider(title='Dish offset [mm]',
-                    start=-25, end=25, step=1, value=0)
 
-hub_width.callback = CustomJS(args=dict(hub_offset=hub_offset), code="""
-    hub_offset.value = 0
-    hub_offset.start = -Math.floor(cb_obj.value/2)
-    hub_offset.end = Math.floor(cb_obj.value/2)
-""")
+# Automatically enforce symmetry (if selected) and make sure range includes zero
+def hub_symm_callback(attr, old, new):
+    if hub_symm.active == 0:
+        hub_width.value = (-hub_width.value[1], hub_width.value[1])
+
+def hub_width_callback(attr, old, new):
+    if hub_symm.active == 0:
+        if new[0] != old[0]:
+            hub_width.value = (hub_width.value[0], -hub_width.value[0])
+        else:
+            hub_width.value = (-hub_width.value[1], hub_width.value[1])
+
+    if hub_width.value[0] > -1:
+        hub_width.value = (-1, hub_width.value[1])
+    if hub_width.value[1] < 1:
+        hub_width.value = (hub_width.value[0], 1)
+
+hub_symm.on_change('active', hub_symm_callback)
+hub_width.on_change('value', hub_width_callback)
 
 # Create spoke controls
 spk_matl = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
@@ -366,7 +380,7 @@ rim_pane = widgetbox(rim_preset,
                      rim_matl, rim_size, rim_mass,
                      rim_EI1, rim_EI2, rim_GJ)
 
-hub_pane = widgetbox(hub_width, hub_diam, hub_offset)
+hub_pane = widgetbox(hub_symm, hub_width, hub_diam)
 
 spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
 
