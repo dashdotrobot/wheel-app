@@ -263,31 +263,51 @@ class BicycleWheel:
             rim_pt = (self.rim.radius, theta_rim, side*offset)
 
             theta_hub = theta_rim + 2*n_cross*s_dir * (2*np.pi/n_spokes)
-            if side == 1:
-                hub_pt = (self.hub.diameter_right/2, theta_hub, self.hub.width_right)
+            if side > 0:
+                hub_pt = (self.hub.diameter_right/2, theta_hub, self.hub.width_left)
             else:
-                hub_pt = (self.hub.diameter_left/2, theta_hub, -self.hub.width_left)
+                hub_pt = (self.hub.diameter_left/2, theta_hub, -self.hub.width_right)
 
             spoke = Spoke(rim_pt, hub_pt, diameter, young_mod)
             self.spokes.append(spoke)
 
-    def apply_tension(self, T_avg):
+    def apply_tension(self, T_avg=None, T_left=None, T_right=None):
         'Apply tension to spokes based on average radial tension.'
 
         # Assume that there are only two tensions in the wheel: left and right
         # and that spokes alternate left, right, left, right...
-        s_0 = self.spokes[0]
-        s_1 = self.spokes[1]
-        T_0 = 2 * T_avg * np.abs(s_1.n[0]) /\
-            (np.abs(s_0.n[0]*s_1.n[1]) + np.abs(s_1.n[0]*s_0.n[1]))
-        T_1 = 2 * T_avg * np.abs(s_0.n[0]) /\
-            (np.abs(s_0.n[0]*s_1.n[1]) + np.abs(s_1.n[0]*s_0.n[1]))
+        s_l = self.spokes[0]
+        s_r = self.spokes[1]
 
+        if T_avg is not None:  # Specify average radial tension
+            T_l = 2 * T_avg * np.abs(s_r.n[0]) /\
+                (np.abs(s_l.n[0]*s_r.n[1]) + np.abs(s_r.n[0]*s_l.n[1]))
+            T_r = 2 * T_avg * np.abs(s_l.n[0]) /\
+                (np.abs(s_l.n[0]*s_r.n[1]) + np.abs(s_r.n[0]*s_l.n[1]))
+
+            for i in range(0, len(self.spokes), 2):
+                self.spokes[i].tension = T_l
+
+            for i in range(1, len(self.spokes), 2):
+                self.spokes[i].tension = T_r
+
+        elif T_right is not None:  # Specify right-side tension
+            T_r = T_right
+            T_l = np.abs(s_r.n[0]/s_l.n[0]) * T_right
+
+        elif T_left is not None:  # Specify left-side tension
+            T_l = T_left
+            T_r = np.abs(s_l.n[0]/s_r.n[0]) * T_left
+
+        else:
+            raise TypeError('Must specify one of the following arguments: T_avg, T_left, or T_right.')
+
+        # Apply tensions
         for i in range(0, len(self.spokes), 2):
-            self.spokes[i].tension = T_0
+            self.spokes[i].tension = T_l
 
         for i in range(1, len(self.spokes), 2):
-            self.spokes[i].tension = T_1
+            self.spokes[i].tension = T_r
 
     def calc_kbar(self, tension=True):
         'Calculate smeared-spoke stiffness matrix'
