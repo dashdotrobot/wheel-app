@@ -138,10 +138,9 @@ def build_wheel_from_UI():
     w = BicycleWheel()
 
     # Hub
-    offset = 0.
     w.hub = Hub(diameter=float(hub_diam.value)/1000.,
-                width=float(hub_width.value)/1000.,
-                offset=offset/1000.)
+                width_left=np.abs(float(hub_width.value[0]))/1000.,
+                width_right=np.abs(float(hub_width.value[1]))/1000.)
 
     # Rim
     r_matl = list(RIM_MATLS)[rim_matl.active]
@@ -397,6 +396,7 @@ tool_panel = Tabs(tabs=[Panel(child=rim_pane, title='Rim'),
 
 result_panel = Tabs(tabs=[Panel(child=result_div, title='Results'),
                           Panel(child=plot_pane, title='Plots')])
+result_panel.on_change('active', lambda attr, old, new: callback_update_results())
 
 layout = row(column(tool_panel, button_update, status_div), result_panel, name='app')
 
