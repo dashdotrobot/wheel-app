@@ -115,7 +115,7 @@ def update_plots(wheel):
     theta_spk = np.where(theta_spk <= np.pi, theta_spk, theta_spk - 2*np.pi)
     T0 = np.array([s.tension/9.81 for s in wheel.spokes])
     width = 0.5 * 2*np.pi/len(wheel.spokes) * np.ones(len(wheel.spokes))
-    side = ['right' if s.hub_pt[2] > 0 else 'left' for s in wheel.spokes]
+    side = ['left' if s.hub_pt[2] > 0 else 'right' for s in wheel.spokes]
     color = ['#ff7f0e' if s == 'right' else '#1f77b4' for s in side]
 
     # Calculate bar heights based on sim options
@@ -180,11 +180,11 @@ def build_wheel_from_UI():
                  young_mod=SPK_MATLS[s_matl]['young_mod'],
                  offset=0.)  # Implement this later
 
-    if spk_pattern.value == 'Radial' and float(spk_tension.value) == 0.:
+    if spk_pattern.value == 'Radial' and float(spk_T_ds.value) == 0.:
         # Apply a vanishingly small tension to make stiffness matrix invertable
-        w.apply_tension(w.spokes[0].EA*1e-6)
+        w.apply_tension(T_avg=w.spokes[0].EA*1e-6)
     else:
-        w.apply_tension(9.81*float(spk_tension.value))
+        w.apply_tension(T_right=9.81*float(spk_T_ds.value))
 
     return w
 
@@ -192,6 +192,9 @@ def build_wheel_from_UI():
 # ---------------------------- PLOTS AND RESULTS --------------------------- #
 # Define data sources and result canvases.                                   #
 # -------------------------------------------------------------------------- #
+
+# Data source to store wheel parameters for client-side calculations
+RIM_SIZE_DATA = ColumnDataSource(data=dict([(s, [RIM_SIZES[s]['radius']]) for s in RIM_SIZES.keys()]))
 
 # Panel to display text results
 result_div = Div(text='Click Update Results to calculate wheel properties.', width=500)
@@ -329,11 +332,51 @@ spk_num = Slider(title='Number of spokes',
                  start=8, end=64, step=4, value=36)
 spk_diam = Slider(title='Diameter [mm]',
                   start=1., end=3., step=0.1, value=2.)
-spk_tension = Slider(title='Average spoke tension [kgf]',
-                     start=0., end=200, step=2, value=100)
+spk_T_ds = Slider(title='Drive-side tension [kgf]',
+                  start=0., end=200, step=2, value=100)
+spk_T_nds = Slider(title='Non-drive-side tension [kgf]',
+                   start=0., end=200, step=2, value=100, disabled=True)
 spk_pattern = Select(title='Spoke pattern', value='3-cross',
                      options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
 
+spk_T_ds.callback = CustomJS(args=dict(spk_T_nds=spk_T_nds, spk_num=spk_num,
+                                       spk_pattern=spk_pattern, hub_width=hub_width,
+                                       hub_diam=hub_diam, rim_size=rim_size,
+                                       rim_size_data=RIM_SIZE_DATA),
+                             code="""
+
+    // Calculate spoke tension ratio
+
+    R = rim_size_data.data[rim_size.value]
+    r = hub_diam.value/2000
+
+    // Calculate tension ratio
+    var n_cross = 0
+    if (spk_pattern.value == 'Radial') {
+        n_cross = 0
+    } else {
+        n_cross = parseInt(spk_pattern.value.slice(0, 1))
+    }
+    
+    theta_h = 4*3.1415/spk_num.value * n_cross
+
+    // Drive-side spoke vector
+    n_ds_1 = hub_width.value[1]/1000
+    n_ds_2 = R - r*Math.cos(theta_h)
+    n_ds_3 = r*Math.sin(theta_h)
+    l_ds = Math.sqrt(n_ds_1**2 + n_ds_2**2 + n_ds_3**2)
+
+    // Non-drive-side spoke vector
+    n_nds_1 = Math.abs(hub_width.value[0]/1000)
+    n_nds_2 = R - r*Math.cos(theta_h)
+    n_nds_3 = r*Math.sin(theta_h)
+    l_nds = Math.sqrt(n_ds_1**2 + n_ds_2**2 + n_ds_3**2)
+
+    c1_ds = n_ds_1 / l_ds
+    c1_nds = n_nds_1 / l_nds
+
+    spk_T_nds.value = 2*Math.round(c1_ds / c1_nds * cb_obj.value / 2)
+""")
 # Forces pane
 f1_dof = RadioButtonGroup(labels=['Lateral', 'Radial', 'Tangential'], active=1)
 f1_loc = TextInput(title='Location [degrees]:', value='0')
@@ -388,7 +431,7 @@ rim_pane = widgetbox(rim_preset,
 
 hub_pane = widgetbox(hub_symm, hub_width, hub_diam)
 
-spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_tension, spk_pattern)
+spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_T_ds, spk_T_nds, spk_pattern)
 
 force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
 
