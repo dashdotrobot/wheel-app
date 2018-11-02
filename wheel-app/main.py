@@ -306,25 +306,16 @@ hub_width = RangeSlider(title='Rim-to-flange distance [mm]',
 hub_diam = Slider(title='Flange diameter [mm]',
                   start=10, end=80, step=1, value=50)
 
-# Automatically enforce symmetry (if selected) and make sure range includes zero
-def hub_symm_callback(attr, old, new):
-    if hub_symm.active == 0:
-        hub_width.value = (-hub_width.value[1], hub_width.value[1])
-
-def hub_width_callback(attr, old, new):
-    if hub_symm.active == 0:
-        if new[0] != old[0]:
-            hub_width.value = (hub_width.value[0], -hub_width.value[0])
-        else:
-            hub_width.value = (-hub_width.value[1], hub_width.value[1])
-
-    if hub_width.value[0] > -1:
-        hub_width.value = (-1, hub_width.value[1])
-    if hub_width.value[1] < 1:
-        hub_width.value = (hub_width.value[0], 1)
-
-hub_symm.on_change('active', hub_symm_callback)
-hub_width.on_change('value', hub_width_callback)
+hub_width.callback = CustomJS(args=dict(hub_symm=hub_symm), code="""
+    if (hub_symm.active == 0) {
+        cb_obj.value = [-cb_obj.value[1], cb_obj.value[1]]
+    }
+""")
+hub_symm.callback = CustomJS(args=dict(hub_width=hub_width), code="""
+    if (cb_obj.active == 0) {
+        hub_width.value = [-hub_width.value[1], hub_width.value[1]]
+    }
+""")
 
 # Create spoke controls
 spk_matl = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
