@@ -66,8 +66,8 @@ def callback_add_force():
     'Add a new force to the forces table'
 
     dof = force_table_src.data['dof'] + [FORCE_DOFS[f_dof.active]]
-    loc = force_table_src.data['loc'] + [float(f_loc.value)]
-    mag = force_table_src.data['mag'] + [float(f_mag.value)]
+    loc = force_table_src.data['loc'] + [0.]
+    mag = force_table_src.data['mag'] + [0.]
 
     force_table_src.data.update({'dof': dof, 'loc': loc, 'mag': mag})
 
@@ -92,7 +92,7 @@ def update_plots(wheel):
         f = [0., 0., 0., 0.]
         f[FORCE_DOFS.index(dof)] = 9.81 * float(mag)
         F_ext = F_ext +\
-            mm.F_ext(f_theta=loc * np.pi/180, f=f)
+            mm.F_ext(f_theta=float(loc) * np.pi/180, f=f)
 
     Bu = mm.B_theta(theta=disp_data.data['theta'], comps=[0])
     Bv = mm.B_theta(theta=disp_data.data['theta'], comps=[1])
@@ -393,20 +393,17 @@ force_table_src = ColumnDataSource(data=dict({'dof': ['Radial'], 'loc': [0], 'ma
 
 force_table = DataTable(source=force_table_src,
                         columns=[TableColumn(field='dof', title='DOF'),
-                                 TableColumn(field='loc', title='Location'),
-                                 TableColumn(field='mag', title='Magnitude')],
+                                 TableColumn(field='loc', title='Location [deg]'),
+                                 TableColumn(field='mag', title='Magnitude [kgf]')],
                         width=270, height=120,
                         sortable=False, editable=True, reorderable=False)
 
 f_dof = RadioButtonGroup(labels=FORCE_DOFS, active=FORCE_DOFS.index('Lateral'))
-f_loc = TextInput(title='Location [degrees]:', value='0')
-f_mag = Slider(title='Magnitude [kgf]',
-               start=-300, end=300, step=5, value=0)
+
+f_add = Button(label='Add new force')
+f_add.on_click(callback_add_force)
 
 f_clear = Button(label='Remove all forces', button_type='danger')
-f_add = Button(label='Add force')
-
-f_add.on_click(callback_add_force)
 f_clear.on_click(callback_clear_forces)
 
 # Computation option controls
@@ -459,7 +456,9 @@ hub_pane = widgetbox(hub_symm, hub_width, hub_diam)
 
 spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_T_ds, spk_T_nds, spk_pattern)
 
-force_pane = widgetbox(f_clear, force_table, f_dof, f_loc, f_mag, f_add)
+force_pane = widgetbox(Div(text=('Apply multiple forces to the wheel. '
+                                 'Double click on a cell to edit. Hit Enter when done.')),
+                       f_clear, force_table, f_dof, f_add)
 
 plot_pane = column(widgetbox(sim_opts, width=500),
                    plot_disp, plot_tension)
