@@ -389,7 +389,7 @@ spk_T_ds.callback = CustomJS(args=dict(spk_T_nds=spk_T_nds, spk_num=spk_num,
 """)
 
 # Forces pane
-force_table_src = ColumnDataSource(data=dict({'dof': ['Radial'], 'loc': [0], 'mag': [100.]}))
+force_table_src = ColumnDataSource(data=dict({'dof': ['Radial'], 'loc': [0], 'mag': [50.]}))
 
 force_table = DataTable(source=force_table_src,
                         columns=[TableColumn(field='dof', title='DOF'),
