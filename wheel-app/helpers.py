@@ -113,6 +113,7 @@ RIM_PRESETS = {
 SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
              'Alloy': {'young_mod': 69e9, 'density': 2700.}}
 
+FORCE_DOFS = ['Lateral', 'Radial', 'Tangential']
 
 def avg_tension_side(w, side=1):
     'Calculate average tension for spokes on one side [N]'
