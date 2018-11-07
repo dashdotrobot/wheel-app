@@ -87,11 +87,12 @@ def update_plots(wheel):
     # Add up external forces
     F_ext = mm.F_ext(f_theta=0., f=[0., 0., 0., 0.])
 
-    for f in range(len(force_table_src.data['dof'])):
-        print(f)
-    # f = [0., 0., 0., 0.]
-    # f[int(f1_dof.active)] = float(f1_mag.value)
-    # F_ext = mm.F_ext(f_theta=float(f1_loc.value) * np.pi/180., f=f)
+    df = force_table_src.data
+    for dof, loc, mag in zip(df['dof'], df['loc'], df['mag']):
+        f = [0., 0., 0., 0.]
+        f[FORCE_DOFS.index(dof)] = 9.81 * float(mag)
+        F_ext = F_ext +\
+            mm.F_ext(f_theta=loc * np.pi/180, f=f)
 
     Bu = mm.B_theta(theta=disp_data.data['theta'], comps=[0])
     Bv = mm.B_theta(theta=disp_data.data['theta'], comps=[1])
