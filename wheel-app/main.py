@@ -71,6 +71,11 @@ def callback_add_force():
 
     force_table_src.data.update({'dof': dof, 'loc': loc, 'mag': mag})
 
+def callback_clear_forces():
+    'Clear all forces from the table'
+
+    force_table_src.data = {'dof': [], 'loc': [], 'mag': []}
+
 def update_plots(wheel):
     'Update Plots tab'
 
@@ -202,8 +207,6 @@ def build_wheel_from_UI():
         w.apply_tension(T_right=9.81*float(spk_T_ds.value))
 
     return w
-
-
 
 
 # ---------------------------- PLOTS AND RESULTS --------------------------- #
@@ -394,7 +397,7 @@ force_table = DataTable(source=force_table_src,
                                  TableColumn(field='loc', title='Location'),
                                  TableColumn(field='mag', title='Magnitude')],
                         width=270, height=120,
-                        sortable=False, editable=True, reorderable=False)
+                        sortable=False, editable=False, reorderable=False)
 
 f_dof = RadioButtonGroup(labels=FORCE_DOFS, active=FORCE_DOFS.index('Radial'))
 f_loc = TextInput(title='Location [degrees]:', value='0')
@@ -405,25 +408,7 @@ f_clear = Button(label='Remove all forces', button_type='danger')
 f_add = Button(label='Add force')
 
 f_add.on_click(callback_add_force)
-
-
-# f_add.callback = CustomJS(args=dict(f_dof=f_dof, f_loc=f_loc, f_mag=f_mag, tab=force_table_src), code="""
-#     dofs = ['Lateral', 'Radial', 'Tangential']
-
-#     tab.data['dof'].push(dofs[f_dof.active])
-#     tab.data['loc'].push(f_loc.value)
-#     tab.data['mag'].push(f_mag.value)
-
-#     tab.change.emit()
-# """)
-
-# f_clear.callback = CustomJS(args=dict(tab=force_table_src), code="""
-#     tab.data['dof'] = []
-#     tab.data['loc'] = []
-#     tab.data['mag'] = []
-
-#     tab.change.emit()
-# """)
+f_clear.on_click(callback_clear_forces)
 
 # Computation option controls
 sim_opts_list = [SIM_OPTS_TENSION, SIM_OPTS_SMEARED, SIM_OPTS_DT]
