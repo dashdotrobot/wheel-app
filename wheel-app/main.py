@@ -62,6 +62,15 @@ def callback_update_results():
     button_update.label = 'Update Results'
     button_update.button_type = 'success'
 
+def callback_add_force():
+    'Add a new force to the forces table'
+
+    dof = force_table_src.data['dof'] + [FORCE_DOFS[f_dof.active]]
+    loc = force_table_src.data['loc'] + [float(f_loc.value)]
+    mag = force_table_src.data['mag'] + [float(f_mag.value)]
+
+    force_table_src.data.update({'dof': dof, 'loc': loc, 'mag': mag})
+
 def update_plots(wheel):
     'Update Plots tab'
 
@@ -69,9 +78,15 @@ def update_plots(wheel):
     mm = ModeMatrix(wheel, N=SIM_OPTS_NMODES)
 
     # Pre-compute with and without tension effects and smeared spokes
-    f = [0., 0., 0., 0.]
-    f[int(f1_dof.active)] = float(f1_mag.value)
-    F_ext = mm.F_ext(f_theta=float(f1_loc.value) * np.pi/180., f=f)
+
+    # Add up external forces
+    F_ext = mm.F_ext(f_theta=0., f=[0., 0., 0., 0.])
+
+    for f in range(len(force_table_src.data['dof'])):
+        print(f)
+    # f = [0., 0., 0., 0.]
+    # f[int(f1_dof.active)] = float(f1_mag.value)
+    # F_ext = mm.F_ext(f_theta=float(f1_loc.value) * np.pi/180., f=f)
 
     Bu = mm.B_theta(theta=disp_data.data['theta'], comps=[0])
     Bv = mm.B_theta(theta=disp_data.data['theta'], comps=[1])
@@ -187,6 +202,8 @@ def build_wheel_from_UI():
         w.apply_tension(T_right=9.81*float(spk_T_ds.value))
 
     return w
+
+
 
 
 # ---------------------------- PLOTS AND RESULTS --------------------------- #
@@ -368,11 +385,45 @@ spk_T_ds.callback = CustomJS(args=dict(spk_T_nds=spk_T_nds, spk_num=spk_num,
 
     spk_T_nds.value = 2*Math.round(c1_ds / c1_nds * cb_obj.value / 2)
 """)
-# Forces pane
-f1_dof = RadioButtonGroup(labels=['Lateral', 'Radial', 'Tangential'], active=1)
-f1_loc = TextInput(title='Location [degrees]:', value='0')
-f1_mag = TextInput(title='Magnitude [N]:', value='1000')
 
+# Forces pane
+force_table_src = ColumnDataSource(data=dict({'dof': ['Radial'], 'loc': [0], 'mag': [100.]}))
+
+force_table = DataTable(source=force_table_src,
+                        columns=[TableColumn(field='dof', title='DOF'),
+                                 TableColumn(field='loc', title='Location'),
+                                 TableColumn(field='mag', title='Magnitude')],
+                        width=270, height=120,
+                        sortable=False, editable=True, reorderable=False)
+
+f_dof = RadioButtonGroup(labels=FORCE_DOFS, active=FORCE_DOFS.index('Radial'))
+f_loc = TextInput(title='Location [degrees]:', value='0')
+f_mag = Slider(title='Magnitude [kgf]',
+               start=0, end=500, step=5, value=100)
+
+f_clear = Button(label='Remove all forces', button_type='danger')
+f_add = Button(label='Add force')
+
+f_add.on_click(callback_add_force)
+
+
+# f_add.callback = CustomJS(args=dict(f_dof=f_dof, f_loc=f_loc, f_mag=f_mag, tab=force_table_src), code="""
+#     dofs = ['Lateral', 'Radial', 'Tangential']
+
+#     tab.data['dof'].push(dofs[f_dof.active])
+#     tab.data['loc'].push(f_loc.value)
+#     tab.data['mag'].push(f_mag.value)
+
+#     tab.change.emit()
+# """)
+
+# f_clear.callback = CustomJS(args=dict(tab=force_table_src), code="""
+#     tab.data['dof'] = []
+#     tab.data['loc'] = []
+#     tab.data['mag'] = []
+
+#     tab.change.emit()
+# """)
 
 # Computation option controls
 sim_opts_list = [SIM_OPTS_TENSION, SIM_OPTS_SMEARED, SIM_OPTS_DT]
@@ -424,7 +475,7 @@ hub_pane = widgetbox(hub_symm, hub_width, hub_diam)
 
 spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_T_ds, spk_T_nds, spk_pattern)
 
-force_pane = widgetbox(f1_dof, f1_loc, f1_mag)
+force_pane = widgetbox(f_clear, force_table, f_dof, f_loc, f_mag, f_add)
 
 plot_pane = column(widgetbox(sim_opts, width=500),
                    plot_disp, plot_tension)
