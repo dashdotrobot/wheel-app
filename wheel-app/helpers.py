@@ -41,10 +41,16 @@ SIM_OPTS = {'TS': (True, True), 'T_': (True, False),
 # Default choices for rim, materials, spoke patterns, etc.                   #
 # -------------------------------------------------------------------------- #
 
-RIM_SIZES = {'700C/29er': {'radius': 0.622/2},
-             '20"':       {'radius': 0.400/2},
-             '26"':       {'radius': 0.559/2},
-             '27"':       {'radius': 0.630/2}}
+RIM_SIZES = {'700C/29er (622)':   {'radius': 0.622/2},
+             '27" frac. (630)':   {'radius': 0.630/2},
+             '650B (584)':        {'radius': 0.584/2},
+             '26" dec. (559)':    {'radius': 0.559/2},
+             '26" x 1 3/8 (590)': {'radius': 0.590/2},
+             '24" dec. (507)':    {'radius': 0.507/2},
+             '20" dec. (406)':    {'radius': 0.406/2},
+             '36" (787)"':        {'radius': 0.787/2},
+             '48" (hi-wheel)':    {'radius': 1.220/2},
+             '52" (hi-wheel)':    {'radius': 1.320/2}}
 
 RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
              'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
@@ -54,7 +60,7 @@ RIM_PRESETS = {
     'Custom': {},
     'Alex ALX-295': {
         'matl': 0,
-        'size': '700C/29er',
+        'size': '700C/29er (622)',
         'mass': 480,
         'EIrad': 310,
         'EIlat': 210,
@@ -62,7 +68,7 @@ RIM_PRESETS = {
     },
     'DT Swiss R460': {
         'matl': 0,
-        'size': '700C/29er',
+        'size': '700C/29er (622)',
         'mass': 460,
         'EIrad': 280,
         'EIlat': 230,
@@ -70,7 +76,7 @@ RIM_PRESETS = {
     },
     'Sun-Ringle CR18 700C, 36h': {
         'matl': 0,
-        'size': '700C/29er',
+        'size': '700C/29er (622)',
         'mass': 540,
         'EIrad': 110,
         'EIlat': 220,
@@ -78,7 +84,7 @@ RIM_PRESETS = {
     },
     'Sun-Ringle CR18 20"': {
         'matl': 0,
-        'size': '20"',
+        'size': '20" dec. (406)',
         'mass': 380,
         'EIrad': 100,
         'EIlat': 150,
@@ -86,7 +92,7 @@ RIM_PRESETS = {
     },
     'Alex X404 27"': {
         'matl': 0,
-        'size': '27"',
+        'size': '27" frac. (630)',
         'mass': 595,
         'EIrad': 130,
         'EIlat': 150,
@@ -94,7 +100,7 @@ RIM_PRESETS = {
     },
     'Alex Y2000 26"': {
         'matl': 0,
-        'size': '26"',
+        'size': '26" dec. (559)',
         'mass': 460,
         'EIrad': 110,
         'EIlat': 130,
@@ -102,7 +108,7 @@ RIM_PRESETS = {
     },
     'Alex Y2000 700C': {
         'matl': 0,
-        'size': '700C/29er',
+        'size': '700C/29er (622)',
         'mass': 550,
         'EIrad': 125,
         'EIlat': 160,

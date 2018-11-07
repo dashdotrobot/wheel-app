@@ -307,7 +307,6 @@ rim_preset.callback = CustomJS(args=dict(rim_matl=rim_matl,
                                          rim_GJ=rim_GJ,
                                          RIM_PRESETS=RIM_PRESETS),
                                code="""
-
     rim_preset = cb_obj.value
 
     if (rim_preset != 'Custom') {
@@ -356,7 +355,6 @@ spk_T_ds.callback = CustomJS(args=dict(spk_T_nds=spk_T_nds, spk_num=spk_num,
                                        hub_diam=hub_diam, rim_size=rim_size,
                                        rim_size_data=RIM_SIZE_DATA),
                              code="""
-
     // Calculate spoke tension ratio
 
     R = rim_size_data.data[rim_size.value]
