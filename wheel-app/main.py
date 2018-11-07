@@ -398,12 +398,12 @@ force_table = DataTable(source=force_table_src,
                                  TableColumn(field='loc', title='Location'),
                                  TableColumn(field='mag', title='Magnitude')],
                         width=270, height=120,
-                        sortable=False, editable=False, reorderable=False)
+                        sortable=False, editable=True, reorderable=False)
 
-f_dof = RadioButtonGroup(labels=FORCE_DOFS, active=FORCE_DOFS.index('Radial'))
+f_dof = RadioButtonGroup(labels=FORCE_DOFS, active=FORCE_DOFS.index('Lateral'))
 f_loc = TextInput(title='Location [degrees]:', value='0')
 f_mag = Slider(title='Magnitude [kgf]',
-               start=0, end=500, step=5, value=100)
+               start=-300, end=300, step=5, value=0)
 
 f_clear = Button(label='Remove all forces', button_type='danger')
 f_add = Button(label='Add force')
