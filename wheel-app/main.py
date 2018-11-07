@@ -227,7 +227,7 @@ disp_data_dict = {'theta': np.linspace(-np.pi, np.pi, 501)}
 disp_data_dict.update(dict.fromkeys(disp_names, np.zeros(501)))
 disp_data = ColumnDataSource(data=disp_data_dict)
 
-plot_disp = figure(plot_height=240,
+plot_disp = figure(plot_height=230,
                    tools='ypan,box_zoom,reset,save',
                    tooltips=[('value', '@$name')])
 plot_disp.x_range = Range1d(-np.pi, np.pi, bounds=(-np.pi, np.pi))
@@ -251,7 +251,7 @@ T_data_dict = {'theta': [], 'width': [], 'side': [], 'color': [], 'y': [], 'T0':
 T_data_dict.update(dict.fromkeys(['dT_'+o for o in SIM_OPTS.keys()], []))
 T_data = ColumnDataSource(data=T_data_dict)
 
-plot_tension = figure(plot_height=240, x_range=plot_disp.x_range,
+plot_tension = figure(plot_height=230, x_range=plot_disp.x_range,
                       tools='ypan,box_zoom,reset,save',
                       tooltips=[('T', '@y{0.0} [kgf]')])
 plot_tension.xaxis.major_tick_line_color = None
