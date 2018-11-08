@@ -117,7 +117,8 @@ RIM_PRESETS = {
 }
 
 SPK_MATLS = {'Stainless steel': {'young_mod': 210e9, 'density': 8000.},
-             'Alloy': {'young_mod': 69e9, 'density': 2700.}}
+             'Aluminum': {'young_mod': 69e9, 'density': 2700.},
+             'Titanium': {'young_mod': 105e9, 'density': 4500.}}
 
 FORCE_DOFS = ['Lateral', 'Radial', 'Tangential']
 

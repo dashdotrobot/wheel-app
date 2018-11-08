@@ -167,8 +167,8 @@ def build_wheel_from_UI():
 
     # Hub
     w.hub = Hub(diameter=float(hub_diam.value)/1000.,
-                width_left=np.abs(float(hub_width.value[0]))/1000.,
-                width_right=np.abs(float(hub_width.value[1]))/1000.)
+                width_nds=np.abs(float(hub_width.value[0]))/1000.,
+                width_ds=np.abs(float(hub_width.value[1]))/1000.)
 
     # Rim
     r_matl = list(RIM_MATLS)[rim_matl.active]
@@ -186,22 +186,39 @@ def build_wheel_from_UI():
                 I33=float(rim_EI1.value) / rim_young_mod, Iw=0.0,
                 young_mod=rim_young_mod, shear_mod=rim_shear_mod)
 
-    # Spokes
-    if spk_pattern.value == 'Radial':
-        n_cross = 0
-    elif spk_pattern.value.endswith('-cross'):
-        n_cross = int(spk_pattern.value[0])
+    # Drive-side
+    if spk_pat_ds.value == 'Radial':
+        n_cross_ds = 0
+    elif spk_pat_ds.value.endswith('-cross'):
+        n_cross_ds = int(spk_pat_ds.value[0])
     else:
-        raise ValueError('Undefined spoke pattern: {:s}'.format(spk_pattern.value))
+        raise ValueError('Undefined drive-side spoke pattern: {:s}'.format(spk_pat_ds.value))
 
-    s_matl = list(SPK_MATLS)[spk_matl.active]
-    w.lace_cross(n_spokes=int(spk_num.value),
-                 n_cross=n_cross,
-                 diameter=float(spk_diam.value)/1000.,
-                 young_mod=SPK_MATLS[s_matl]['young_mod'],
-                 offset=0.)  # Implement this later
+    s_matl_ds = list(SPK_MATLS)[spk_matl_ds.active]
+    w.lace_cross_ds(n_spokes=int(spk_num.value)//2,
+                    n_cross=n_cross_ds,
+                    diameter=float(spk_diam_ds.value)/1000.,
+                    young_mod=SPK_MATLS[s_matl_ds]['young_mod'],
+                    offset=0.)  # Implement this later
 
-    if spk_pattern.value == 'Radial' and float(spk_T_ds.value) == 0.:
+    # Non-drive-side
+    if spk_pat_nds.value == 'Radial':
+        n_cross_nds = 0
+    elif spk_pat_nds.value.endswith('-cross'):
+        n_cross_nds = int(spk_pat_nds.value[0])
+    else:
+        raise ValueError('Undefined drive-side spoke pattern: {:s}'.format(spk_pat_nds.value))
+
+    s_matl_nds = list(SPK_MATLS)[spk_matl_nds.active]
+    w.lace_cross_nds(n_spokes=int(spk_num.value)//2,
+                     n_cross=n_cross_nds,
+                     diameter=float(spk_diam_nds.value)/1000.,
+                     young_mod=SPK_MATLS[s_matl_nds]['young_mod'],
+                     offset=0.)  # Implement this later
+
+
+    if (spk_pat_ds.value == 'Radial' and spk_pat_nds.value == 'Radial'
+        and float(spk_T_ds.value) == 0.):
         # Apply a vanishingly small tension to make stiffness matrix invertable
         w.apply_tension(T_avg=w.spokes[0].EA*1e-6)
     else:
@@ -209,6 +226,73 @@ def build_wheel_from_UI():
 
     return w
 
+callback_tension_ratio = """
+    // Calculate spoke tension ratio
+
+    R = rim_size_data.data[rim_size.value]
+    r = hub_diam.value/2000
+
+    // Get DS and NDS spoke patterns
+    var n_cross_ds = 0
+    if (spk_pat_ds.value == 'Radial') {
+        n_cross_ds = 0
+    } else {
+        n_cross_ds = parseInt(spk_pat_ds.value.slice(0, 1))
+    }
+
+    var n_cross_nds = 0
+    if (spk_pat_nds.value == 'Radial') {
+        n_cross_nds = 0
+    } else {
+        n_cross_nds = parseInt(spk_pat_nds.value.slice(0, 1))
+    }
+
+    theta_h_ds = 4*3.1415/spk_num.value * n_cross_ds
+    theta_h_nds = 4*3.1415/spk_num.value * n_cross_nds
+
+    // Drive-side spoke vector
+    n_ds_1 = hub_width.value[1]/1000
+    n_ds_2 = R - r*Math.cos(theta_h_ds)
+    n_ds_3 = r*Math.sin(theta_h_nds)
+    l_ds = Math.sqrt(n_ds_1**2 + n_ds_2**2 + n_ds_3**2)
+
+    // Non-drive-side spoke vector
+    n_nds_1 = Math.abs(hub_width.value[0]/1000)
+    n_nds_2 = R - r*Math.cos(theta_h_nds)
+    n_nds_3 = r*Math.sin(theta_h_nds)
+    l_nds = Math.sqrt(n_ds_1**2 + n_ds_2**2 + n_ds_3**2)
+
+    c1_ds = n_ds_1 / l_ds
+    c1_nds = n_nds_1 / l_nds
+
+    spk_T_nds.value = 2*Math.round(c1_ds / c1_nds * cb_obj.value / 2)
+"""
+
+callback_sim_opts = """
+    var opt_str = ((cb_obj.active.indexOf(0) >= 0 ? 'T' : '_') +
+                   (cb_obj.active.indexOf(1) >= 0 ? 'S' : '_'))
+
+    u.glyph.y.field = 'u_' + opt_str
+    v.glyph.y.field = 'v_' + opt_str
+    w.glyph.y.field = 'w_' + opt_str
+
+    disp_data.change.emit()
+
+    var data = T_data.data
+    var T0 = data['T0']
+    var dT = data['dT_' + opt_str]
+    var y = data['y']
+
+    for(var i=0; i < y.length; i++) {
+        if (cb_obj.active.indexOf(2) >= 0) {
+            y[i] = dT[i]
+        } else {
+            y[i] = dT[i] + T0[i]
+        }
+    }
+
+    T_data.change.emit()
+"""
 
 # ---------------------------- PLOTS AND RESULTS --------------------------- #
 # Define data sources and result canvases.                                   #
@@ -338,55 +422,30 @@ hub_symm.callback = CustomJS(args=dict(hub_width=hub_width), code="""
 """)
 
 # Create spoke controls
-spk_matl = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
 spk_num = Slider(title='Number of spokes',
                  start=8, end=64, step=4, value=36)
-spk_diam = Slider(title='Diameter [mm]',
+
+spk_matl_ds = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
+spk_pat_ds = Select(title='Drive-side pattern', value='3-cross',
+                     options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
+spk_diam_ds = Slider(title='Drive-side diameter [mm]',
                   start=1., end=3., step=0.1, value=2.)
 spk_T_ds = Slider(title='Drive-side tension [kgf]',
                   start=0., end=200, step=2, value=100)
+
+spk_matl_nds = RadioButtonGroup(labels=list(SPK_MATLS), active=0)
+spk_pat_nds = Select(title='Non-drive-side pattern', value='3-cross',
+                     options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
+spk_diam_nds = Slider(title='Non-drive-side diameter [mm]',
+                  start=1., end=3., step=0.1, value=2.)
 spk_T_nds = Slider(title='Non-drive-side tension [kgf]',
                    start=0., end=200, step=2, value=100, disabled=True)
-spk_pattern = Select(title='Spoke pattern', value='3-cross',
-                     options=['Radial', '1-cross', '2-cross', '3-cross', '4-cross'])
 
 spk_T_ds.callback = CustomJS(args=dict(spk_T_nds=spk_T_nds, spk_num=spk_num,
-                                       spk_pattern=spk_pattern, hub_width=hub_width,
-                                       hub_diam=hub_diam, rim_size=rim_size,
-                                       rim_size_data=RIM_SIZE_DATA),
-                             code="""
-    // Calculate spoke tension ratio
-
-    R = rim_size_data.data[rim_size.value]
-    r = hub_diam.value/2000
-
-    // Calculate tension ratio
-    var n_cross = 0
-    if (spk_pattern.value == 'Radial') {
-        n_cross = 0
-    } else {
-        n_cross = parseInt(spk_pattern.value.slice(0, 1))
-    }
-    
-    theta_h = 4*3.1415/spk_num.value * n_cross
-
-    // Drive-side spoke vector
-    n_ds_1 = hub_width.value[1]/1000
-    n_ds_2 = R - r*Math.cos(theta_h)
-    n_ds_3 = r*Math.sin(theta_h)
-    l_ds = Math.sqrt(n_ds_1**2 + n_ds_2**2 + n_ds_3**2)
-
-    // Non-drive-side spoke vector
-    n_nds_1 = Math.abs(hub_width.value[0]/1000)
-    n_nds_2 = R - r*Math.cos(theta_h)
-    n_nds_3 = r*Math.sin(theta_h)
-    l_nds = Math.sqrt(n_ds_1**2 + n_ds_2**2 + n_ds_3**2)
-
-    c1_ds = n_ds_1 / l_ds
-    c1_nds = n_nds_1 / l_nds
-
-    spk_T_nds.value = 2*Math.round(c1_ds / c1_nds * cb_obj.value / 2)
-""")
+                                       spk_pat_nds=spk_pat_nds, spk_pat_ds=spk_pat_ds,
+                                       hub_width=hub_width, hub_diam=hub_diam,
+                                       rim_size=rim_size, rim_size_data=RIM_SIZE_DATA),
+                             code=callback_tension_ratio)
 
 # Forces pane
 force_table_src = ColumnDataSource(data=dict({'dof': ['Radial'], 'loc': [0], 'mag': [50.]}))
@@ -412,31 +471,9 @@ sim_opts = CheckboxButtonGroup(labels=['Tension effects', 'Smeared spokes', 'Sho
                                active=[i for i in range(len(sim_opts_list))
                                        if sim_opts_list[i]])
 
-sim_opts.callback = CustomJS(args=dict(u=line_u, v=line_v, w=line_w, T=bar_T, disp_data=disp_data, T_data=T_data), code="""
-    var opt_str = ((cb_obj.active.indexOf(0) >= 0 ? 'T' : '_') +
-                   (cb_obj.active.indexOf(1) >= 0 ? 'S' : '_'))
-
-    u.glyph.y.field = 'u_' + opt_str
-    v.glyph.y.field = 'v_' + opt_str
-    w.glyph.y.field = 'w_' + opt_str
-
-    disp_data.change.emit()
-
-    var data = T_data.data
-    var T0 = data['T0']
-    var dT = data['dT_' + opt_str]
-    var y = data['y']
-
-    for(var i=0; i < y.length; i++) {
-        if (cb_obj.active.indexOf(2) >= 0) {
-            y[i] = dT[i]
-        } else {
-            y[i] = dT[i] + T0[i]
-        }
-    }
-
-    T_data.change.emit()
-""")
+sim_opts.callback = CustomJS(args=dict(u=line_u, v=line_v, w=line_w, T=bar_T,
+                                       disp_data=disp_data, T_data=T_data),
+                             code=callback_sim_opts)
 
 # Update Results control
 button_update = Button(label='Update Results', button_type='success')
@@ -454,7 +491,11 @@ rim_pane = widgetbox(rim_preset,
 
 hub_pane = widgetbox(hub_symm, hub_width, hub_diam)
 
-spk_pane = widgetbox(spk_matl, spk_num, spk_diam, spk_T_ds, spk_T_nds, spk_pattern)
+spk_pane = widgetbox(spk_num,
+                     Div(text='<strong>Drive-side spokes</strong>'),
+                     spk_matl_ds, spk_pat_ds, spk_diam_ds, spk_T_ds,
+                     Div(text='<strong>Non-drive-side spokes</strong>'),
+                     spk_matl_nds, spk_pat_nds, spk_diam_nds, spk_T_nds)
 
 force_pane = widgetbox(Div(text=('Apply multiple forces to the wheel. '
                                  'Double click on a cell to edit. Hit Enter when done.')),
