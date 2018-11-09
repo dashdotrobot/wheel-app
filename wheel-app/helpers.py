@@ -66,30 +66,6 @@ RIM_PRESETS = {
         'EIlat': 210,
         'GJ': 85
     },
-    'DT Swiss R460': {
-        'matl': 0,
-        'size': '700C/29er (622)',
-        'mass': 460,
-        'EIrad': 280,
-        'EIlat': 230,
-        'GJ': 100
-    },
-    'Sun-Ringle CR18 700C, 36h': {
-        'matl': 0,
-        'size': '700C/29er (622)',
-        'mass': 540,
-        'EIrad': 110,
-        'EIlat': 220,
-        'GJ': 25
-    },
-    'Sun-Ringle CR18 20"': {
-        'matl': 0,
-        'size': '20" dec. (406)',
-        'mass': 380,
-        'EIrad': 100,
-        'EIlat': 150,
-        'GJ': 25
-    },
     'Alex X404 27"': {
         'matl': 0,
         'size': '27" frac. (630)',
@@ -113,6 +89,54 @@ RIM_PRESETS = {
         'EIrad': 125,
         'EIlat': 160,
         'GJ': 20
+    },
+    'DT Swiss R460': {
+        'matl': 0,
+        'size': '700C/29er (622)',
+        'mass': 460,
+        'EIrad': 280,
+        'EIlat': 230,
+        'GJ': 100
+    },
+    'DT Swiss TK540': {
+        'matl': 0,
+        'size': '700C/29er (622)',
+        'mass': 550,
+        'EIrad': 211,
+        'EIlat': 260,
+        'GJ': 75
+    },
+    'H Plus Son TB14': {
+        'matl': 0,
+        'size': '700C/29er (622)',
+        'mass': 490,
+        'EIrad': 89,
+        'EIlat': 224,
+        'GJ': 32
+    },
+    'Mavic A119 32-h': {
+        'matl': 0,
+        'size': '700C/29er (622)',
+        'mass': 540,
+        'EIrad': 140,
+        'EIlat': 232,
+        'GJ': 44
+    },
+    'Sun-Ringle CR18 700C, 36h': {
+        'matl': 0,
+        'size': '700C/29er (622)',
+        'mass': 540,
+        'EIrad': 110,
+        'EIlat': 220,
+        'GJ': 25
+    },
+    'Sun-Ringle CR18 20"': {
+        'matl': 0,
+        'size': '20" dec. (406)',
+        'mass': 380,
+        'EIrad': 100,
+        'EIlat': 150,
+        'GJ': 25
     },
 }
 
