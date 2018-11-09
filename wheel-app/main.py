@@ -42,7 +42,6 @@ def callback_update_results():
     status_div.text = ''
 
     try:
-
         w = build_wheel_from_UI()
 
         # Determine active tab
@@ -65,11 +64,15 @@ def callback_update_results():
 def callback_add_force():
     'Add a new force to the forces table'
 
-    dof = force_table_src.data['dof'] + [FORCE_DOFS[f_dof.active]]
-    loc = force_table_src.data['loc'] + [0.]
-    mag = force_table_src.data['mag'] + [0.]
+    try:
+        dof = force_table_src.data['dof'] + [FORCE_DOFS[f_dof.active]]
+        loc = force_table_src.data['loc'] + [float(f_loc.value)]
+        mag = force_table_src.data['mag'] + [float(f_mag.value)]
 
-    force_table_src.data.update({'dof': dof, 'loc': loc, 'mag': mag})
+        force_table_src.data.update({'dof': dof, 'loc': loc, 'mag': mag})
+
+    except Exception as e:
+        status_div.text = '<small style="color: red">Error: {:s}</small>'.format(repr(e))
 
 def callback_clear_forces():
     'Clear all forces from the table'
@@ -458,6 +461,8 @@ force_table = DataTable(source=force_table_src,
                         sortable=False, editable=True, reorderable=False)
 
 f_dof = RadioButtonGroup(labels=FORCE_DOFS, active=FORCE_DOFS.index('Lateral'))
+f_loc = TextInput(title='Location [deg]:', value='0')
+f_mag = TextInput(title='Magnitude [kgf]:', value='0')
 
 f_add = Button(label='Add new force')
 f_add.on_click(callback_add_force)
@@ -499,7 +504,7 @@ spk_pane = widgetbox(spk_num,
 
 force_pane = widgetbox(Div(text=('Apply multiple forces to the wheel. '
                                  'Double click on a cell to edit. Hit Enter when done.')),
-                       f_clear, force_table, f_dof, f_add)
+                       f_clear, force_table, f_dof, f_loc, f_mag, f_add)
 
 plot_pane = column(widgetbox(sim_opts, width=500),
                    plot_disp, plot_tension)
