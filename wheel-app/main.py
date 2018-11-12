@@ -170,8 +170,8 @@ def build_wheel_from_UI():
 
     # Hub
     w.hub = Hub(diameter=float(hub_diam.value)/1000.,
-                width_nds=np.abs(float(hub_width.value[0]))/1000.,
-                width_ds=np.abs(float(hub_width.value[1]))/1000.)
+                width_nds=np.abs(float(hub_width.value[1]))/1000.,
+                width_ds=np.abs(float(hub_width.value[0]))/1000.)
 
     # Rim
     r_matl = list(RIM_MATLS)[rim_matl.active]
