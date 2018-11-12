@@ -179,11 +179,11 @@ def print_wheel_info(w):
 
     out += '<h4>Spoke Tension</h4><table class="table">\n'
     out += '    <tr><td>Average drive-side tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
-        .format(avg_tension_side(w, side=1)/9.81,
-                avg_tension_side(w, side=1)/4.448)
-    out += '    <tr><td>Average non-drive-side tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
         .format(avg_tension_side(w, side=-1)/9.81,
                 avg_tension_side(w, side=-1)/4.448)
+    out += '    <tr><td>Average non-drive-side tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
+        .format(avg_tension_side(w, side=1)/9.81,
+                avg_tension_side(w, side=1)/4.448)
     out += '    <tr><td>Maximum average tension</td><td>{0:.1f} kgf</td><td>({1:.1f} lbs)</td></tr>\n'\
         .format(Tc/9.81, Tc/4.448)
     out += '    <tr><td>Critical mode</td><td>{:d}</td></tr>\n'\
