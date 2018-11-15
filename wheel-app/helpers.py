@@ -53,7 +53,7 @@ RIM_SIZES = {'700C/29er (622)':   {'radius': 0.622/2},
              '52" (hi-wheel)':    {'radius': 1.320/2}}
 
 RIM_MATLS = {'Alloy': {'young_mod': 69e9, 'shear_mod': 26e9, 'density': 2700.},
-             'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 8000.}}
+             'Steel': {'young_mod': 200e9, 'shear_mod': 77e9, 'density': 7870.}}
 
 RIM_DEFAULT = 'Sun-Ringle CR18 700C, 36h'
 RIM_PRESETS = {
@@ -157,7 +157,16 @@ def print_wheel_info(w):
     out = ''
 
     # Mass and inertia properties
-    # TODO
+    mass = w.calc_mass()
+    rot_inert = w.calc_rot_inertia()
+
+    out += '<h4>Mass properties (without hub)</h4>\n<table class="table">\n'
+    out += '    <tr><td>Mass</td><td>{0:.0f} grams ({1:.2f} lbs)</td></tr>\n'\
+        .format(mass * 1000., mass * 2.20462)
+    out += '    <tr><td>Effective rotating mass</td><td>{0:.0f} grams ({1:.2f} lbs)</td></tr>\n'\
+        .format((mass + rot_inert/w.rim.radius**2) * 1000,
+                (mass + rot_inert/w.rim.radius**2) * 2.20462)
+    out += '</table>\n'
 
     # Stiffness properties
     K_lat = calc_lat_stiff(w, N=SIM_OPTS_NMODES)
