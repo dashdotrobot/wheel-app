@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from warnings import warn
 from .helpers import pol2rect
 
 
@@ -10,6 +11,7 @@ class Rim:
 
     def __init__(self, radius, area, I11, I22,
                  I33, Iw, young_mod, shear_mod,
+                 density=None,
                  sec_type='general', sec_params={}):
         self.radius = radius
         self.area = area
@@ -19,23 +21,25 @@ class Rim:
         self.Iw = Iw
         self.young_mod = young_mod
         self.shear_mod = shear_mod
+
+        self.density = density
         self.sec_type = sec_type
         self.sec_params = sec_params
 
     @classmethod
     def general(cls, radius, area, I11, I22,
-                I33, Iw, young_mod, shear_mod):
+                I33, Iw, young_mod, shear_mod, density=None):
         'Define a rim with arbitrary section properties.'
 
         r = cls(radius=radius,
                 area=area, I11=I11, I22=I22, I33=I33, Iw=Iw,
-                young_mod=young_mod, shear_mod=shear_mod,
+                young_mod=young_mod, shear_mod=shear_mod, density=density,
                 sec_type='general', sec_params={})
 
         return r
 
     @classmethod
-    def box(cls, radius, young_mod, shear_mod, w, h, t):
+    def box(cls, radius, w, h, t, young_mod, shear_mod, density=None):
         """Define a rim from a box cross-section.
 
         Args:
@@ -57,14 +61,14 @@ class Rim:
 
         r = cls(radius=radius,
                 area=area, I11=I11, I22=I22, I33=I33, Iw=Iw,
-                young_mod=young_mod, shear_mod=shear_mod,
+                young_mod=young_mod, shear_mod=shear_mod, density=density,
                 sec_type='box', sec_params={'closed': True,
                                             'w': w, 'h': h, 't': t})
 
         return r
 
     @classmethod
-    def C_channel(cls, radius, young_mod, shear_mod, w, h, t):
+    def C_channel(cls, radius, w, h, t, young_mod, shear_mod, density=None):
         'Construct a rim from a C channel cross-section.'
 
         area = (w+t)*t + 2*(h-t)*t
@@ -87,12 +91,28 @@ class Rim:
 
         r = cls(radius=radius,
                 area=area, I11=I11, I22=I22, I33=I33, Iw=Iw,
-                young_mod=young_mod, shear_mod=shear_mod,
+                young_mod=young_mod, shear_mod=shear_mod, density=density,
                 sec_type='C', sec_params={'closed': False,
                                           'w': w, 'h': h, 't': t,
                                           'y_c': y_c, 'y_s': y_s})
 
         return r
+
+    def calc_mass(self):
+        'Return the rim mass'
+
+        if self.density is not None:
+            return self.density * 2*np.pi*self.radius * self.area
+        else:
+            return None
+
+    def calc_rot_inertia(self):
+        'Return the rotational inertia about the axle'
+
+        if self.density is not None:
+            return self.calc_mass() * self.radius**2
+        else:
+            return None
 
 
 class Hub:
@@ -106,8 +126,8 @@ class Hub:
 
     Usage:
         Symmetric:           Hub(diameter=0.05, width=0.05)
-        Asymmetric, specify: Hub(diameter=0.05, width_left=0.03, width_right=0.02)
-        Asymmetric, offset:  Hub(diameter_left=0.04, diameter_right=0.06, width=0.05, offset=0.01)
+        Asymmetric, specify: Hub(diameter=0.05, width_nds=0.03, width_ds=0.02)
+        Asymmetric, offset:  Hub(diameter_nds=0.04, diameter_ds=0.06, width=0.05, offset=0.01)
     """
 
     def __init__(self, diameter=None, diameter_nds=None, diameter_ds=None,
@@ -212,10 +232,27 @@ class Spoke:
 
         return k
 
-    def __init__(self, rim_pt, hub_pt, diameter, young_mod):
+    def calc_mass(self):
+        'Return the spoke mass'
+
+        if self.density is not None:
+            return self.density * self.length * np.pi/4*self.diameter**2
+        else:
+            return None
+
+    def calc_rot_inertia(self):
+        'Return the spoke rotational inertia about its center-of-mass'
+
+        if self.density is not None:
+            return self.calc_mass()*(self.length*self.n[1])**2 / 12.
+        else:
+            return None
+
+    def __init__(self, rim_pt, hub_pt, diameter, young_mod, density=None):
         self.EA = np.pi / 4 * diameter**2 * young_mod
         self.diameter = diameter
         self.young_mod = young_mod
+        self.density = density
         self.tension = 0.
 
         self.rim_pt = rim_pt  # (R, theta, offset)
@@ -251,12 +288,13 @@ class BicycleWheel:
         a = np.argsort([s.rim_pt[1] for s in self.spokes])
         self.spokes = [self.spokes[i] for i in a]
 
-    def lace_radial(self, n_spokes, diameter, young_mod, offset=0.0):
+    def lace_radial(self, n_spokes, diameter, young_mod, offset=0.0, density=None):
         'Add spokes in a radial spoke pattern.'
 
-        return self.lace_cross(n_spokes, 0, diameter, young_mod, offset)
+        return self.lace_cross(n_spokes, 0, diameter=diameter, young_mod=young_mod,
+                               offset=offset, density=density)
 
-    def lace_cross_nds(self, n_spokes, n_cross, diameter, young_mod, offset=0.):
+    def lace_cross_nds(self, n_spokes, n_cross, diameter, young_mod, offset=0., density=None):
         'Add spokes on the non-drive-side with n_cross crossings'
 
         # Start with a leading spoke at theta=0, and alternate
@@ -269,12 +307,12 @@ class BicycleWheel:
                       theta_rim + 2*np.pi/n_spokes*n_cross*s_dir,
                       self.hub.width_nds)
 
-            self.spokes.append(Spoke(rim_pt, hub_pt, diameter, young_mod))
+            self.spokes.append(Spoke(rim_pt, hub_pt, diameter, young_mod, density=density))
 
         self.reorder_spokes()
         return True
 
-    def lace_cross_ds(self, n_spokes, n_cross, diameter, young_mod, offset=0.):
+    def lace_cross_ds(self, n_spokes, n_cross, diameter, young_mod, offset=0., density=None):
         'Add spokes on the drive-side with n_cross crossings'
 
         # Start with a leading spoke at theta=0, and alternate
@@ -287,19 +325,19 @@ class BicycleWheel:
                       theta_rim + 2*np.pi/n_spokes*n_cross*s_dir,
                       -self.hub.width_ds)
 
-            self.spokes.append(Spoke(rim_pt, hub_pt, diameter, young_mod))
+            self.spokes.append(Spoke(rim_pt, hub_pt, diameter, young_mod, density=density))
 
         self.reorder_spokes()
         return True
 
-    def lace_cross(self, n_spokes, n_cross, diameter, young_mod, offset=0.0):
+    def lace_cross(self, n_spokes, n_cross, diameter, young_mod, offset=0.0, density=None):
         'Generate spokes in a "cross" pattern with n_cross crossings.'
 
         # Remove any existing spokes
         self.spokes = []
 
-        self.lace_cross_ds(n_spokes//2, n_cross, diameter, young_mod, offset)
-        self.lace_cross_nds(n_spokes//2, n_cross, diameter, young_mod, offset)
+        self.lace_cross_ds(n_spokes//2, n_cross, diameter, young_mod, offset, density=density)
+        self.lace_cross_nds(n_spokes//2, n_cross, diameter, young_mod, offset, density=density)
 
         return True
 
@@ -370,14 +408,36 @@ class BicycleWheel:
     def calc_mass(self):
         'Calculate total mass of the wheel in kilograms.'
 
-        # TODO
-        pass
+        m_rim = self.rim.calc_mass()
+        if m_rim is None:
+            m_rim = 0.
+            warn('Rim density is not specified.')
+
+        m_spokes = np.array([s.calc_mass() for s in self.spokes])
+        if np.any(m_spokes == None):
+            m_spokes = np.where(m_spokes == None, 0., m_spokes)
+            warn('Some spoke densities are not specified.')
+
+        return m_rim + np.sum(m_spokes)
 
     def calc_rot_inertia(self):
         'Calculate rotational inertia about the hub axle.'
 
-        # TODO
-        pass
+        I_rim = self.rim.calc_rot_inertia()
+        if I_rim is None:
+            I_rim = 0.
+            warn('Rim density is not specified.')
+
+        I_spk = np.array([s.calc_rot_inertia() for s in self.spokes])
+        if np.any(I_spk == None):
+            I_spokes = 0.
+            warn('Some spoke densities are not specified.')
+        else:
+            mr2_spk = np.array([s.calc_mass()*(0.5*(s.hub_pt[0] + s.rim_pt[0]))**2
+                                for s in self.spokes])
+            I_spokes = np.sum(I_spk) + np.sum(mr2_spk)
+
+        return I_rim + I_spokes
 
     def draw(self, ax, opts={}):
         'Draw a graphical representation of the wheel'

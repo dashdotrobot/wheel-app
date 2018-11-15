@@ -187,7 +187,8 @@ def build_wheel_from_UI():
                 I11=float(rim_GJ.value) / rim_shear_mod,
                 I22=float(rim_EI2.value) / rim_young_mod,
                 I33=float(rim_EI1.value) / rim_young_mod, Iw=0.0,
-                young_mod=rim_young_mod, shear_mod=rim_shear_mod)
+                young_mod=rim_young_mod, shear_mod=rim_shear_mod,
+                density=density)
 
     # Drive-side
     if spk_pat_ds.value == 'Radial':
@@ -202,6 +203,7 @@ def build_wheel_from_UI():
                     n_cross=n_cross_ds,
                     diameter=float(spk_diam_ds.value)/1000.,
                     young_mod=SPK_MATLS[s_matl_ds]['young_mod'],
+                    density=SPK_MATLS[s_matl_ds]['density'],
                     offset=0.)  # Implement this later
 
     # Non-drive-side
@@ -217,6 +219,7 @@ def build_wheel_from_UI():
                      n_cross=n_cross_nds,
                      diameter=float(spk_diam_nds.value)/1000.,
                      young_mod=SPK_MATLS[s_matl_nds]['young_mod'],
+                     density=SPK_MATLS[s_matl_nds]['density'],
                      offset=0.)  # Implement this later
 
 
